@@ -1,5 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import logger from '../../config/logger.js';
 import Admin from '../../models/admin/Admin.js';
 import Restaurant from '../../models/restaurants/Restaurant.js';
 import Payment from '../../models/payments/Payment.js';
@@ -18,7 +20,7 @@ router.get('/', async (req, res) => {
     const admins = await Admin.find({}).select('-password').sort({ createdAt: -1 });
     res.json(admins);
   } catch (err) {
-    console.error(err.message);
+    logger.error(err.message);
     res.status(500).send('Server error');
   }
 });
@@ -53,7 +55,7 @@ router.post('/', async (req, res) => {
     
     res.json(adminObj);
   } catch (err) {
-    console.error(err.message);
+    logger.error(err.message);
     res.status(500).send('Server error');
   }
 });
@@ -76,7 +78,7 @@ router.delete('/:id', async (req, res) => {
     await Admin.findByIdAndDelete(req.params.id);
     res.json({ message: 'Admin removed' });
   } catch (err) {
-    console.error(err.message);
+    logger.error(err.message);
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ message: 'Admin not found' });
     }
@@ -122,7 +124,7 @@ router.put('/:id', async (req, res) => {
     
     res.json(adminObj);
   } catch (err) {
-    console.error(err.message);
+    logger.error(err.message);
     res.status(500).send('Server error');
   }
 });
@@ -150,7 +152,7 @@ router.put('/:id/toggle-status', async (req, res) => {
 
     res.json(adminObj);
   } catch (err) {
-    console.error(err.message);
+    logger.error(err.message);
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ message: 'Admin not found' });
     }
@@ -199,7 +201,7 @@ router.get('/restaurants', async (req, res) => {
     );
     res.json(formattedRestaurants);
   } catch (err) {
-    console.error(err.message);
+    logger.error(err.message);
     res.status(500).send('Server error');
   }
 });
@@ -219,7 +221,7 @@ router.put('/restaurants/:id/approve', async (req, res) => {
     
     res.json({ message: 'Restaurant approved successfully', restaurant });
   } catch (err) {
-    console.error(err.message);
+    logger.error(err.message);
     res.status(500).send('Server error');
   }
 });
@@ -242,7 +244,7 @@ router.put('/restaurants/:id/reject', async (req, res) => {
     
     res.json({ message: 'Restaurant rejected', restaurant });
   } catch (err) {
-    console.error(err.message);
+    logger.error(err.message);
     res.status(500).send('Server error');
   }
 });
@@ -255,7 +257,7 @@ router.delete('/restaurants/:id', async (req, res) => {
     if (!restaurant) return res.status(404).json({ message: 'Restaurant not found' });
     res.json({ message: 'Restaurant deleted successfully' });
   } catch (err) {
-    console.error(err.message);
+    logger.error(err.message);
     res.status(500).send('Server error');
   }
 });
@@ -278,7 +280,7 @@ router.put('/restaurants/:id/toggle-status', async (req, res) => {
     await restaurant.save();
     res.json({ message: `Restaurant ${restaurant.status === 'APPROVED' ? 'Enabled' : 'Disabled'} successfully`, restaurant });
   } catch (err) {
-    console.error(err.message);
+    logger.error(err.message);
     res.status(500).send('Server error');
   }
 });

@@ -11,9 +11,16 @@ let io = null;
  * Initialize Socket.IO Server with JWT authentication and room authorization
  */
 export const initSocketServer = (httpServer) => {
+  // Blocker 5: Enforce Single-instance deployment constraint
+  if (process.env.NODE_APP_INSTANCE && process.env.NODE_APP_INSTANCE !== '0') {
+    const msg = 'CRITICAL: Socket.IO is running in PM2 Cluster mode without @socket.io/redis-adapter. Realtime features will break. Please use single-instance deployment.';
+    logger.error(msg);
+    if (process.env.NODE_ENV === 'production') throw new Error(msg);
+  }
+
   io = new Server(httpServer, {
     cors: {
-      origin: '*',
+      origin: [env.FRONTEND_URL || 'https://norozz.in', 'https://www.norozz.in', 'http://localhost:5173'],
       methods: ['GET', 'POST', 'PATCH', 'PUT']
     }
   });

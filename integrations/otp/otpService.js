@@ -47,9 +47,11 @@ export const sendOTP = async (phone) => {
     return { success: true, message: 'OTP generated and stored in memory' };
   }
 
-  // Bypass real SMS for test numbers starting with 99999
-  if (phone.startsWith('99999')) {
-    console.log(`📱 [TEST MODE] SMS skipped for test number ${phone}.`);
+  const isProd = process.env.NODE_ENV === 'production';
+
+  // Bypass real SMS for test numbers starting with 99999 or if BYPASS_SMS is enabled (ONLY IN NON-PROD)
+  if (!isProd && (phone.startsWith('99999') || process.env.BYPASS_SMS === 'true')) {
+    console.log(`📱 [TEST MODE] SMS skipped for test number ${phone}. OTP: ${otp}`);
     return { success: true, message: 'OTP generated (Test Mode)' };
   }
 

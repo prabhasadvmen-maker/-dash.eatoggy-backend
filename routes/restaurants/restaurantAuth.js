@@ -8,6 +8,7 @@ import { sendOTP, verifyOTP } from '../../integrations/otp/otpService.js';
 import { upload, uploadToR2 } from '../../integrations/storage/r2UploadService.js';
 
 import { protectRestaurant } from '../../middleware/authMiddleware.js';
+import { otpRequestLimiter, otpVerifyLimiter } from '../../config/rateLimiter.js';
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ const getRazorpay = () => new Razorpay({
 
 // @route   POST /api/restaurant-auth/send-otp
 // @desc    Send OTP to mobile
-router.post('/send-otp', async (req, res) => {
+router.post('/send-otp', otpRequestLimiter, async (req, res) => {
   const { mobile } = req.body;
   if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
     return res.status(400).json({ success: false, message: 'Valid 10-digit Indian mobile number is required' });
@@ -33,7 +34,7 @@ router.post('/send-otp', async (req, res) => {
 
 // @route   POST /api/restaurant-auth/verify-otp
 // @desc    Verify OTP for Restaurant Partner, provision/authenticate & issue JWT
-router.post('/verify-otp', async (req, res) => {
+router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
   const { mobile, otp } = req.body;
 
   if (!mobile || !otp) {

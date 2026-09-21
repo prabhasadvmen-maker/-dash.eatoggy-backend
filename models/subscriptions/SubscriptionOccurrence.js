@@ -35,9 +35,22 @@ const subscriptionOccurrenceSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['SCHEDULED', 'ORDER_CREATED', 'SKIPPED', 'CANCELLED'],
+      enum: ['SCHEDULED', 'PROCESSING', 'ORDER_CREATED', 'SKIPPED', 'CANCELLED'],
       default: 'SCHEDULED',
       index: true
+    },
+    processingStartedAt: {
+      type: Date,
+      default: null,
+      index: true
+    },
+    processingAttemptId: {
+      type: String,
+      default: null
+    },
+    lastProcessingError: {
+      type: String,
+      default: null
     },
     skippedAt: {
       type: Date,

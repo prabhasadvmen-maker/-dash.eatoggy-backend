@@ -1,56 +1,44 @@
+import winston from 'winston';
+
 const SENSITIVE_KEYS = [
-  'password',
-  'token',
-  'otp',
-  'secret',
-  'authorization',
-  'creditcard',
-  'cvv',
-  'jwt_secret',
-  'razorpay_key_secret',
-  'r2_secret_access_key',
-  'mongodb_uri'
+  'password', 'token', 'otp', 'secret', 'authorization', 'creditcard',
+  'cvv', 'jwt_secret', 'razorpay_key_secret', 'r2_secret_access_key', 'mongodb_uri'
 ];
 
-function sanitize(obj) {
+const redact = (obj) => {
   if (!obj || typeof obj !== 'object') return obj;
-  if (Array.isArray(obj)) return obj.map(sanitize);
+  if (Array.isArray(obj)) return obj.map(redact);
 
   const cleaned = {};
   for (const [key, value] of Object.entries(obj)) {
     if (SENSITIVE_KEYS.includes(key.toLowerCase())) {
       cleaned[key] = '[REDACTED]';
     } else if (typeof value === 'object' && value !== null) {
-      cleaned[key] = sanitize(value);
+      cleaned[key] = redact(value);
     } else {
       cleaned[key] = value;
     }
   }
   return cleaned;
-}
-
-function formatLog(level, message, meta = {}) {
-  const timestamp = new Date().toISOString();
-  const reqId = meta.requestId ? ` [ReqID: ${meta.requestId}]` : '';
-  const sanitizedMeta = Object.keys(meta).length > 0 ? ` | ${JSON.stringify(sanitize(meta))}` : '';
-  return `[${timestamp}] [${level.toUpperCase()}]${reqId} ${message}${sanitizedMeta}`;
-}
-
-export const logger = {
-  info: (message, meta) => {
-    console.log(formatLog('info', message, meta));
-  },
-  error: (message, meta) => {
-    console.error(formatLog('error', message, meta));
-  },
-  warn: (message, meta) => {
-    console.warn(formatLog('warn', message, meta));
-  },
-  debug: (message, meta) => {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(formatLog('debug', message, meta));
-    }
-  }
 };
+
+const myFormat = winston.format.printf(({ level, message, timestamp, requestId, ...meta }) => {
+  const reqId = requestId ? ` [ReqID: ${requestId}]` : '';
+  const metaStr = Object.keys(meta).length ? ` | ${JSON.stringify(redact(meta))}` : '';
+  return `[${timestamp}] [${level.toUpperCase()}]${reqId} ${message}${metaStr}`;
+});
+
+export const logger = winston.createLogger({
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    process.env.NODE_ENV === 'production' 
+      ? winston.format.json() // Use JSON in production for easy parsing by Datadog/ELK
+      : myFormat
+  ),
+  transports: [
+    new winston.transports.Console()
+  ],
+});
 
 export default logger;

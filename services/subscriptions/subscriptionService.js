@@ -6,7 +6,7 @@ import SubscriptionOccurrence from '../../models/subscriptions/SubscriptionOccur
 import Payment from '../../models/payments/Payment.js';
 import Address from '../../models/customers/Address.js';
 import Order from '../../models/orders/Order.js';
-import { emitToRestaurantRoom, emitToOrderRoom } from '../../realtime/socketServer.js';
+import { emitToRestaurantRoom, emitToOrderRoom, emitToSubscriptionRoom } from '../../realtime/socketServer.js';
 
 // --- Helper Date Formatting Functions ---
 const WEEKDAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
@@ -330,11 +330,32 @@ export const verifySubscriptionPayment = async ({ customerId, subscriptionId, ra
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
     .digest('hex');
 
-  const isTestMock = razorpay_signature === 'mock_valid_signature' ||
-                     razorpay_signature === 'valid_signature' ||
-                     razorpay_signature.startsWith('sig_') ||
-                     (razorpay_order_id && razorpay_order_id.startsWith('order_mock_')) ||
-                     (razorpay_payment_id && razorpay_payment_id.startsWith('pay_'));
+  const isProd = process.env.NODE_ENV === 'production';
+  
+  // PRODUCTION GUARD: Strictly reject mock signatures in production
+  if (isProd && (
+    razorpay_signature === 'mock_valid_signature' || 
+    razorpay_signature === 'valid_signature' ||
+    razorpay_signature === 'sig_valid' ||
+    (razorpay_signature && razorpay_signature.startsWith('sig_sim_'))
+  )) {
+    const error = new Error('Mock signatures are strictly forbidden in production');
+    error.statusCode = 403;
+    throw error;
+  }
+  
+  if (isProd && (razorpayKeySecret === 'rzp_test_secret_eatoggy' || !razorpayKeySecret)) {
+    const error = new Error('Production environment must use real Razorpay credentials');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  const isTestMock = !isProd && (
+    razorpay_signature === 'mock_valid_signature' ||
+    razorpay_signature === 'valid_signature' ||
+    razorpay_signature === 'sig_valid' ||
+    (razorpay_signature && razorpay_signature.startsWith('sig_sim_'))
+  );
   const isMatch = generatedSignature === razorpay_signature || isTestMock;
 
   if (!isMatch) {
@@ -552,10 +573,15 @@ export const runSubscriptionScheduler = async (targetDateInput = new Date()) => 
   const targetDateStr = formatDateString(targetDate);
   const targetDay = getDayName(targetDate);
 
-  // Find all scheduled occurrences due for target date string or matching day
+  const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+  
+  // Find all scheduled occurrences OR stale processing occurrences due for target date string or matching day
   const dueOccurrences = await SubscriptionOccurrence.find({
     dateString: targetDateStr,
-    status: 'SCHEDULED'
+    $or: [
+      { status: 'SCHEDULED' },
+      { status: 'PROCESSING', processingStartedAt: { $lt: tenMinutesAgo } }
+    ]
   }).populate('subscriptionId');
 
   let generatedOrdersCount = 0;
@@ -571,10 +597,22 @@ export const runSubscriptionScheduler = async (targetDateInput = new Date()) => 
       continue;
     }
 
-    // Atomic idempotency claim: Update occurrence status to ORDER_CREATED
+    const attemptId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(7);
+
+    // Atomic idempotency claim: Update occurrence status to PROCESSING
     const claimedOccurrence = await SubscriptionOccurrence.findOneAndUpdate(
-      { _id: occurrence._id, status: 'SCHEDULED' },
-      { status: 'ORDER_CREATED', generatedAt: new Date() },
+      { 
+        _id: occurrence._id, 
+        $or: [
+          { status: 'SCHEDULED' },
+          { status: 'PROCESSING', processingStartedAt: { $lt: tenMinutesAgo } }
+        ]
+      },
+      { 
+        status: 'PROCESSING', 
+        processingStartedAt: new Date(),
+        processingAttemptId: attemptId
+      },
       { new: true }
     );
 
@@ -583,6 +621,8 @@ export const runSubscriptionScheduler = async (targetDateInput = new Date()) => 
       skippedCount++;
       continue;
     }
+
+    try {
 
     // Build Order Snapshots
     const planSnap = subscription.planSnapshot;
@@ -637,8 +677,10 @@ export const runSubscriptionScheduler = async (targetDateInput = new Date()) => 
 
     await order.save();
 
-    // Link Order ID to Occurrence
+    // Link Order ID to Occurrence and finalize state
     claimedOccurrence.orderId = order._id;
+    claimedOccurrence.status = 'ORDER_CREATED';
+    claimedOccurrence.generatedAt = new Date();
     await claimedOccurrence.save();
 
     // Update Subscription occurrences count
@@ -656,8 +698,23 @@ export const runSubscriptionScheduler = async (targetDateInput = new Date()) => 
       isSubscriptionOrder: true
     });
 
+    // Broadcast Socket.IO event to Customer Subscription room
+    emitToSubscriptionRoom(subscription._id.toString(), 'subscription:occurrence:created', {
+      subscriptionId: subscription._id,
+      occurrenceId: claimedOccurrence._id,
+      orderId: order._id,
+      status: 'GENERATED'
+    });
+
     generatedOrdersCount++;
     createdOrders.push(order);
+    } catch (err) {
+      logger.error(`[Subscription Scheduler] Order generation failed for occurrence ${occurrence._id}:`, err);
+      // Optional: Leave it as PROCESSING so it can be picked up by the retry mechanism later.
+      // We also save the error context.
+      claimedOccurrence.lastProcessingError = err.message;
+      await claimedOccurrence.save();
+    }
   }
 
   return {

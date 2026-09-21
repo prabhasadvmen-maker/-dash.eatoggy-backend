@@ -138,7 +138,22 @@ export const verifyOrderPayment = async (customerId, { razorpay_order_id, razorp
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
     .digest('hex');
 
-  const isTestMock = razorpay_signature === 'mock_valid_signature' || razorpay_order_id.startsWith('order_mock_');
+  const isProd = process.env.NODE_ENV === 'production';
+  
+  // PRODUCTION GUARD: Strictly reject mock signatures in production
+  if (isProd && razorpay_signature === 'mock_valid_signature') {
+    const error = new Error('Mock signatures are strictly forbidden in production');
+    error.statusCode = 403;
+    throw error;
+  }
+  
+  if (isProd && (razorpayKeySecret === 'rzp_test_secret_eatoggy' || !razorpayKeySecret)) {
+    const error = new Error('Production environment must use real Razorpay credentials');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  const isTestMock = !isProd && (razorpay_signature === 'mock_valid_signature' || (razorpay_order_id && razorpay_order_id.startsWith('order_mock_')));
   const isMatch = generatedSignature === razorpay_signature || isTestMock;
 
   if (!isMatch) {

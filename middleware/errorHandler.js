@@ -45,6 +45,7 @@ export const errorHandler = (err, req, res, next) => {
   });
 
   const responsePayload = {
+    success: false,
     message
   };
 
