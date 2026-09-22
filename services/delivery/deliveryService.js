@@ -127,7 +127,7 @@ export const acceptDeliveryJob = async (deliveryId, partnerId) => {
         acceptedAt: new Date()
       }
     },
-    { new: true }
+    { returnDocument: 'after' }
   );
 
   if (!delivery) {

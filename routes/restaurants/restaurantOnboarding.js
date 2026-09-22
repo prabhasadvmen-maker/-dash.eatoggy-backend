@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import Restaurant from '../../models/restaurants/Restaurant.js';
@@ -58,7 +59,7 @@ router.put('/business-details', asyncHandler(async (req, res) => {
     };
   }
 
-  restaurant.currentStep = 'BUSINESS_DOCS';
+  restaurant.currentStep = 'KITCHEN_HYGIENE';
   if (restaurant.onboardingStatus === 'DRAFT') {
     restaurant.onboardingStatus = 'ONBOARDING_IN_PROGRESS';
   }
@@ -76,6 +77,103 @@ const docUpload = upload.fields([
   { name: 'gstCertificate', maxCount: 1 },
   { name: 'foodLicense', maxCount: 1 }
 ]);
+
+// Configure multer for kitchen hygiene with 25MB limit
+const kitchenHygieneUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4'];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, WEBP, and MP4 are allowed.`));
+    }
+  }
+}).fields([
+  { name: 'mainPrepStation', maxCount: 1 },
+  { name: 'storageAndFridge', maxCount: 1 },
+  { name: 'dishwashingArea', maxCount: 1 }
+]);
+
+// @route   POST /api/restaurant-onboarding/kitchen-hygiene
+// @desc    Upload Kitchen Hygiene Proof
+router.post('/kitchen-hygiene', (req, res, next) => {
+  kitchenHygieneUpload(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        return errorResponse(res, { statusCode: 400, message: 'File size exceeds 25MB limit' });
+      }
+      return errorResponse(res, { statusCode: 400, message: err.message });
+    }
+    next();
+  });
+}, asyncHandler(async (req, res) => {
+  const restaurant = await Restaurant.findById(req.restaurant.id);
+  if (!restaurant) {
+    return errorResponse(res, { statusCode: 404, message: 'Restaurant not found' });
+  }
+
+  // Handle case where no files were uploaded but we need to check if mainPrepStation already exists
+  if ((!req.files || !req.files.mainPrepStation) && !restaurant.kitchenHygieneProof?.mainPrepStation?.url) {
+    return errorResponse(res, { statusCode: 400, message: 'Main Prep Station is required' });
+  }
+
+  const helperUpload = async (fileArray, folder) => {
+    if (!fileArray || fileArray.length === 0) return null;
+    const file = fileArray[0];
+    const url = await uploadToR2(file, folder);
+    return {
+      url,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      uploadedAt: new Date()
+    };
+  };
+
+  const mainPrepStation = req.files?.mainPrepStation ? await helperUpload(req.files.mainPrepStation, 'kitchen-hygiene') : restaurant.kitchenHygieneProof?.mainPrepStation;
+  const storageAndFridge = req.files?.storageAndFridge ? await helperUpload(req.files.storageAndFridge, 'kitchen-hygiene') : restaurant.kitchenHygieneProof?.additionalAreas?.storageAndFridge;
+  const dishwashingArea = req.files?.dishwashingArea ? await helperUpload(req.files.dishwashingArea, 'kitchen-hygiene') : restaurant.kitchenHygieneProof?.additionalAreas?.dishwashingArea;
+
+  const currentProof = restaurant.kitchenHygieneProof ? restaurant.kitchenHygieneProof.toObject() : {};
+  
+  const updateData = {
+    ...currentProof,
+    completed: true,
+    submittedAt: new Date()
+  };
+
+  if (mainPrepStation) updateData.mainPrepStation = mainPrepStation;
+  
+  updateData.additionalAreas = updateData.additionalAreas || {};
+  if (storageAndFridge) updateData.additionalAreas.storageAndFridge = storageAndFridge;
+  if (dishwashingArea) updateData.additionalAreas.dishwashingArea = dishwashingArea;
+  
+  // Clean up undefined properties completely
+  const cleanProof = JSON.parse(JSON.stringify(updateData));
+  
+  // Remove empty additionalAreas to avoid nested issues
+  if (Object.keys(cleanProof.additionalAreas || {}).length === 0) {
+    delete cleanProof.additionalAreas;
+  }
+
+  const updatedDoc = await Restaurant.findByIdAndUpdate(
+    restaurant._id,
+    { 
+      $set: { 
+        kitchenHygieneProof: cleanProof,
+        currentStep: 'BUSINESS_DOCS'
+      } 
+    },
+    { returnDocument: 'after', runValidators: true }
+  );
+
+  return successResponse(res, {
+    message: 'Kitchen hygiene proof saved successfully',
+    data: { currentStep: updatedDoc.currentStep }
+  });
+}));
 
 // @route   POST /api/restaurant-onboarding/business-docs
 // @desc    Upload Business Documents
@@ -276,6 +374,9 @@ router.post('/submit', asyncHandler(async (req, res) => {
   // Validate required steps/fields
   if (!restaurant.restaurantName || !restaurant.ownerName) {
     return errorResponse(res, { statusCode: 400, message: 'Business details are incomplete' });
+  }
+  if (!restaurant.kitchenHygieneProof?.completed || !restaurant.kitchenHygieneProof?.mainPrepStation?.url) {
+    return errorResponse(res, { statusCode: 400, message: 'Kitchen Hygiene Proof is incomplete' });
   }
   if (!restaurant.documents?.gstCertificate || !restaurant.documents?.foodLicense) {
     return errorResponse(res, { statusCode: 400, message: 'Business documents are incomplete' });

@@ -56,13 +56,13 @@ export const getRestaurantById = async (req, res) => {
       data: restaurant
     });
   } catch (error) {
-    console.error('Error fetching restaurant detail:', error);
     if (error.name === 'CastError') {
       return res.status(404).json({
         success: false,
         message: 'Restaurant not found or not available'
       });
     }
+    console.error('Error fetching restaurant detail:', error);
     res.status(500).json({
       success: false,
       message: 'Server Error'
@@ -167,13 +167,13 @@ export const getRestaurantMenu = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching restaurant menu:', error);
     if (error.name === 'CastError') {
       return res.status(404).json({
         success: false,
         message: 'Restaurant not found or not available'
       });
     }
+    console.error('Error fetching restaurant menu:', error);
     res.status(500).json({
       success: false,
       message: 'Server Error'

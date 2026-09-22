@@ -613,7 +613,7 @@ export const runSubscriptionScheduler = async (targetDateInput = new Date()) => 
         processingStartedAt: new Date(),
         processingAttemptId: attemptId
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!claimedOccurrence) {
