@@ -92,7 +92,6 @@ app.use('/api/cart', customerCartRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/customers/orders', customerOrderRoutes);
-app.use('/api/customers/orders', deliveryOrderRoutes);
 app.use('/api/restaurants/orders', restaurantOrderRoutes);
 app.use('/api/restaurant-admin/orders', restaurantOrderRoutes);
 app.use('/api/restaurants/kitchen', kitchenOrderRoutes);
