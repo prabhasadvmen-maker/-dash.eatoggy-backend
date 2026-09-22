@@ -53,10 +53,12 @@ app.use(helmet());
 
 // Blocker 3: Strict Production CORS
 const allowedOrigins = [
-  env.FRONTEND_URL || 'https://norozz.in',
-  'https://www.norozz.in',
+  env.FRONTEND_URL,
+  'https://dash-eatoggy-frontend.vercel.app',
+  'https://eatoggy.in',
+  'https://www.eatoggy.in',
   'http://localhost:5173'
-];
+].filter(Boolean);
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
