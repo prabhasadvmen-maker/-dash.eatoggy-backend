@@ -5,7 +5,6 @@ import { createServer } from 'http';
 import { env, logger } from './config/index.js';
 import connectDB from './database/connection.js';
 import mongoose from 'mongoose';
-import redisClient from './config/redis.js';
 import { initSocketServer } from './realtime/socketServer.js';
 import authRoutes from './routes/auth/auth.js';
 import adminRoutes from './routes/admin/adminRoutes.js';
@@ -93,9 +92,7 @@ app.use('/api/checkout', checkoutRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/customers/orders', customerOrderRoutes);
 app.use('/api/restaurants/orders', restaurantOrderRoutes);
-app.use('/api/restaurant-admin/orders', restaurantOrderRoutes);
 app.use('/api/restaurants/kitchen', kitchenOrderRoutes);
-app.use('/api/restaurant-admin/kitchen', kitchenOrderRoutes);
 app.use('/api', subscriptionRoutes);
 app.use('/api', settlementRoutes);
 app.use('/api', reviewRoutes);
@@ -146,16 +143,6 @@ const gracefulShutdown = async (signal) => {
     logger.info('MongoDB connection closed.');
   } catch (err) {
     logger.error('Error closing MongoDB connection', err);
-  }
-
-  // Close Redis
-  if (redisClient) {
-    try {
-      await redisClient.quit();
-      logger.info('Redis connection closed.');
-    } catch (err) {
-      logger.error('Error closing Redis connection', err);
-    }
   }
 
   logger.info('Graceful shutdown complete. Exiting process.');

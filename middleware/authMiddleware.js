@@ -55,23 +55,10 @@ export const protectAdmin = (req, res, next) => {
   });
 };
 
-import Admin from '../models/admin/Admin.js';
-
 export const protectSuperAdmin = (req, res, next) => {
-  protect(req, res, async () => {
-    if (!req.admin) {
+  protect(req, res, () => {
+    if (!req.admin || req.admin.role !== 'SuperAdmin') {
       return res.status(403).json({ message: 'SuperAdmin access denied' });
-    }
-    if (req.admin.role !== 'SuperAdmin') {
-      try {
-        const dbAdmin = await Admin.findById(req.admin.id);
-        if (!dbAdmin || dbAdmin.role !== 'SuperAdmin') {
-          return res.status(403).json({ message: 'SuperAdmin access denied' });
-        }
-        req.admin = dbAdmin;
-      } catch (err) {
-        return res.status(403).json({ message: 'SuperAdmin access denied' });
-      }
     }
     next();
   });
