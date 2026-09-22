@@ -47,6 +47,7 @@ const httpServer = createServer(app);
 // Initialize Socket.IO Server
 initSocketServer(httpServer);
 
+app.set('trust proxy', 1);
 app.use(requestIdMiddleware);
 app.use(helmet());
 
