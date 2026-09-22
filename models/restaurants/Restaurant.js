@@ -1,5 +1,13 @@
 import mongoose from 'mongoose';
 
+const FileSchema = new mongoose.Schema({
+  url: { type: String },
+  originalName: { type: String },
+  mimeType: { type: String },
+  size: { type: Number },
+  uploadedAt: { type: Date }
+}, { _id: false });
+
 const RestaurantSchema = new mongoose.Schema({
   // Owner Details
   ownerName: { type: String },
@@ -33,6 +41,17 @@ const RestaurantSchema = new mongoose.Schema({
     kitchenVideo: { type: String }
   },
 
+  // Kitchen Hygiene Proof
+  kitchenHygieneProof: {
+    mainPrepStation: FileSchema,
+    additionalAreas: {
+      storageAndFridge: FileSchema,
+      dishwashingArea: FileSchema
+    },
+    completed: { type: Boolean, default: false },
+    submittedAt: { type: Date }
+  },
+
   // Bank Details
   bankDetails: {
     accountHolderName: { type: String },
@@ -54,7 +73,7 @@ const RestaurantSchema = new mongoose.Schema({
   },
   currentStep: {
     type: String,
-    enum: ['WELCOME', 'BUSINESS_DETAILS', 'BUSINESS_DOCS', 'IDENTITY_BANK', 'REVIEW_PAYMENT', 'PENDING_REVIEW', 'APPROVED', 'REJECTED'],
+    enum: ['WELCOME', 'BUSINESS_DETAILS', 'KITCHEN_HYGIENE', 'BUSINESS_DOCS', 'IDENTITY_BANK', 'REVIEW_PAYMENT', 'PENDING_REVIEW', 'APPROVED', 'REJECTED'],
     default: 'WELCOME'
   },
   rejectionReason: { type: String, default: '' },

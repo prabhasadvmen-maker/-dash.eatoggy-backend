@@ -24,7 +24,7 @@ export const globalLimiter = rateLimit({
 // OTP Request Rate Limiter: max 3 requests per 15 minutes per IP
 const _otpRequestLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 3, // Limit each IP to 3 OTP requests per 15 mins
+  max: 1000, // Limit each IP to 3 OTP requests per 15 mins (increased for testing)
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many OTP requests from this IP, please try again after 15 minutes.' },
@@ -42,7 +42,7 @@ export const otpRequestLimiter = (req, res, next) => {
 // OTP Verification Limiter: max 5 attempts per 15 minutes per IP
 const _otpVerifyLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 5,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many verification attempts, please try again after 15 minutes.' },

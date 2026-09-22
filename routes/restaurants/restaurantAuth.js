@@ -139,6 +139,7 @@ router.get('/me', protectRestaurant, async (req, res) => {
         pincode: restaurant.pincode || null,
         bankDetails: restaurant.bankDetails || null,
         documents: restaurant.documents || null,
+        kitchenHygieneProof: restaurant.kitchenHygieneProof || null,
         role: 'Restaurant',
         isPhoneVerified: restaurant.isPhoneVerified,
         status: restaurant.status,
