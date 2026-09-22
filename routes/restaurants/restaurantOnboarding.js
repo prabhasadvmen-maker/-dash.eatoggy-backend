@@ -166,7 +166,7 @@ router.post('/kitchen-hygiene', (req, res, next) => {
         currentStep: 'BUSINESS_DOCS'
       } 
     },
-    { new: true, runValidators: true }
+    { returnDocument: 'after', runValidators: true }
   );
 
   return successResponse(res, {

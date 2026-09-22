@@ -104,7 +104,7 @@ export const initiateRefund = async (req, res) => {
           }
         }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedPayment) {

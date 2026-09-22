@@ -64,7 +64,5 @@ const cartSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Unique index on customerId for fast lookup & ensuring 1 active cart per customer
-cartSchema.index({ customerId: 1 }, { unique: true });
 
 export default mongoose.model('Cart', cartSchema);
