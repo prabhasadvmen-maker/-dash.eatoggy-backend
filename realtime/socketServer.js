@@ -20,7 +20,13 @@ export const initSocketServer = (httpServer) => {
 
   io = new Server(httpServer, {
     cors: {
-      origin: [env.FRONTEND_URL || 'https://norozz.in', 'https://www.norozz.in', 'http://localhost:5173'],
+      origin: [
+        env.FRONTEND_URL,
+        'https://dash-eatoggy-frontend.vercel.app',
+        'https://eatoggy.in',
+        'https://www.eatoggy.in',
+        'http://localhost:5173'
+      ].filter(Boolean),
       methods: ['GET', 'POST', 'PATCH', 'PUT']
     }
   });

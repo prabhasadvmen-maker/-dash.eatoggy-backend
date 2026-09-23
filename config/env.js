@@ -16,6 +16,7 @@ export const env = {
   PORT: parseInt(process.env.PORT || '5000', 10),
   MONGODB_URI: process.env.MONGODB_URI || '',
   JWT_SECRET: process.env.JWT_SECRET || '',
+  FRONTEND_URL: process.env.FRONTEND_URL || '',
   SUPERADMIN_EMAIL: process.env.SUPERADMIN_EMAIL || '',
   SUPERADMIN_PASSWORD: process.env.SUPERADMIN_PASSWORD || '',
   APITXT_API_KEY: process.env.APITXT_API_KEY || '',
@@ -30,8 +31,11 @@ export const env = {
 };
 
 export function validateEnv() {
-  if (!env.MONGODB_URI) {
-    console.error('ERROR: MONGODB_URI is missing from .env file');
+  const missing = [];
+  if (!env.MONGODB_URI) missing.push('MONGODB_URI');
+  if (!env.JWT_SECRET) missing.push('JWT_SECRET');
+  if (missing.length > 0) {
+    console.error(`ERROR: Missing required env variables: ${missing.join(', ')}`);
     process.exit(1);
   }
 }

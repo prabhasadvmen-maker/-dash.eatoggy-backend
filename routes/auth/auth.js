@@ -78,7 +78,7 @@ router.post('/impersonate/:adminId', async (req, res) => {
     const targetAdmin = await Admin.findById(req.params.adminId);
     if (!targetAdmin) return res.status(404).json({ message: 'Admin not found' });
 
-    const token = jwt.sign({ admin: { id: targetAdmin.id } }, secret, { expiresIn: '8h' });
+    const token = jwt.sign({ admin: { id: targetAdmin.id, role: targetAdmin.role } }, secret, { expiresIn: '8h' });
     res.json({ token, user: { email: targetAdmin.email, id: targetAdmin.id, role: targetAdmin.role, name: targetAdmin.name } });
   } catch (err) {
     res.status(401).json({ message: 'Invalid token' });
