@@ -31,6 +31,7 @@ router.get('/restaurants/tiffin-plans', protectRestaurant, restaurantCtrl.getRes
 router.post('/restaurants/tiffin-plans', protectRestaurant, restaurantCtrl.createPlan);
 router.patch('/restaurants/tiffin-plans/:id', protectRestaurant, restaurantCtrl.updatePlan);
 router.patch('/restaurants/tiffin-plans/:id/status', protectRestaurant, restaurantCtrl.updateStatus);
+router.delete('/restaurants/tiffin-plans/:id', protectRestaurant, restaurantCtrl.deletePlan);
 
 // ==========================================
 // SYSTEM / SCHEDULER ROUTE

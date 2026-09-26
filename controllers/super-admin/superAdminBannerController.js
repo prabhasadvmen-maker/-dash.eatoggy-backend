@@ -1,5 +1,5 @@
 import Banner from '../../models/promotions/Banner.js';
-import { uploadToR2 } from '../../services/r2UploadService.js';
+import { uploadToR2, getPresignedUrl } from '../../services/r2UploadService.js';
 
 /**
  * POST /api/super-admin/banners
@@ -67,9 +67,18 @@ export const createBanner = async (req, res) => {
 export const getBanners = async (req, res) => {
   try {
     const banners = await Banner.find().sort({ displayOrder: 1, createdAt: -1 });
+    
+    const bannersWithSignedUrls = await Promise.all(banners.map(async (banner) => {
+      const bannerObj = banner.toObject();
+      if (bannerObj.image) {
+        bannerObj.image = await getPresignedUrl(bannerObj.image);
+      }
+      return bannerObj;
+    }));
+
     res.status(200).json({
       success: true,
-      data: banners
+      data: bannersWithSignedUrls
     });
   } catch (error) {
     console.error('Error fetching banners:', error);
@@ -87,9 +96,14 @@ export const getBannerById = async (req, res) => {
     if (!banner) {
       return res.status(404).json({ success: false, message: 'Banner not found' });
     }
+    const bannerObj = banner.toObject();
+    if (bannerObj.image) {
+      bannerObj.image = await getPresignedUrl(bannerObj.image);
+    }
+
     res.status(200).json({
       success: true,
-      data: banner
+      data: bannerObj
     });
   } catch (error) {
     if (error.name === 'CastError') {

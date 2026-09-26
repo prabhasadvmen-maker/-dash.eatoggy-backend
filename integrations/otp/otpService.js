@@ -33,12 +33,12 @@ export const sendOTP = async (phone) => {
 
   if (!apiKey) {
     console.warn('APITXT_API_KEY not set. OTP stored in memory only.');
-    return { success: true, message: 'OTP generated and stored in memory' };
+    return { success: true, message: 'OTP generated and stored in memory', otp };
   }
 
   if (phone.startsWith('99999') || process.env.BYPASS_SMS === 'true') {
     console.log(`[TEST MODE] OTP for ${phone}: ${otp}`);
-    return { success: true, message: 'OTP generated (Test Mode)' };
+    return { success: true, message: 'OTP generated (Test Mode)', otp };
   }
 
   try {
@@ -60,14 +60,14 @@ export const sendOTP = async (phone) => {
       response.data?.status === 'success' ||
       (response.data?.message && response.data.message.toLowerCase().includes('success'))
     ) {
-      return { success: true, message: 'OTP sent successfully' };
+      return { success: true, message: 'OTP sent successfully', otp };
     } else {
       console.error('APITxT Send Error:', response.data);
       return { success: false, message: response.data?.message || 'Failed to send OTP via SMS provider' };
     }
   } catch (err) {
     console.error('OTP Service Error:', err.message);
-    return { success: true, message: 'OTP generated (SMS gateway fallback)' };
+    return { success: true, message: 'OTP generated (SMS gateway fallback)', otp };
   }
 };
 

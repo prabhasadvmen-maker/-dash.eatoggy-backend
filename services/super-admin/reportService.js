@@ -17,7 +17,7 @@ export const getPlatformAnalyticsReportService = async () => {
   const activeSubscriptions = await Subscription.countDocuments({ status: 'ACTIVE' });
 
   const deliveredOrdersList = await Order.find({ orderStatus: 'DELIVERED' }).select('pricing').lean();
-  const totalGMV = deliveredOrdersList.reduce((sum, o) => sum + (o.pricing?.finalTotal || 0), 0);
+  const totalGMV = deliveredOrdersList.reduce((sum, o) => sum + (o.pricing?.grandTotal || 0), 0);
   const estimatedCommissionEarnings = Math.round(totalGMV * 0.15);
 
   const settlementsList = await Settlement.find().lean();

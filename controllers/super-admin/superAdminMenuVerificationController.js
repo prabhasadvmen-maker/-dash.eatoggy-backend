@@ -1,24 +1,37 @@
 import MenuItem from '../../models/menu/MenuItem.js';
+import { getPresignedUrl } from '../../integrations/storage/r2UploadService.js';
 
 // @desc    Get pending menu items for verification
 export const getPendingMenuItems = async (req, res) => {
   try {
     const { status, restaurantId } = req.query;
     
-    // Default to PENDING_REVIEW if no status is specified
-    const query = { status: status || 'PENDING_REVIEW' };
+    const query = {};
+    if (status && status !== 'ALL') {
+      query.status = status;
+    } else if (!status) {
+      query.status = 'PENDING_REVIEW';
+    }
     
     if (restaurantId) {
       query.restaurantId = restaurantId;
     }
 
     const items = await MenuItem.find(query)
-      .populate('restaurantId', 'businessDetails.restaurantName')
+      .populate('restaurantId', 'restaurantName email mobile')
       .populate('categoryId', 'name')
       .populate('subcategoryId', 'name')
       .sort({ submittedAt: 1 });
 
-    res.json({ data: items });
+    const itemsWithUrls = await Promise.all(items.map(async (item) => {
+      const obj = item.toObject();
+      if (obj.image) {
+        obj.image = await getPresignedUrl(obj.image);
+      }
+      return obj;
+    }));
+
+    res.json({ data: itemsWithUrls });
   } catch (error) {
     console.error('Error fetching pending menu items:', error);
     res.status(500).json({ message: 'Failed to fetch pending menu items' });
@@ -29,7 +42,7 @@ export const getPendingMenuItems = async (req, res) => {
 export const getMenuItemDetails = async (req, res) => {
   try {
     const item = await MenuItem.findById(req.params.id)
-      .populate('restaurantId', 'businessDetails.restaurantName contactInfo')
+      .populate('restaurantId', 'restaurantName email mobile')
       .populate('categoryId', 'name')
       .populate('subcategoryId', 'name');
 
@@ -37,7 +50,12 @@ export const getMenuItemDetails = async (req, res) => {
       return res.status(404).json({ message: 'Menu Item not found' });
     }
 
-    res.json({ data: item });
+    const itemObj = item.toObject();
+    if (itemObj.image) {
+      itemObj.image = await getPresignedUrl(itemObj.image);
+    }
+
+    res.json({ data: itemObj });
   } catch (error) {
     if (error.kind === 'ObjectId') return res.status(404).json({ message: 'Menu Item not found' });
     console.error('Error fetching menu item details:', error);

@@ -68,9 +68,18 @@ export const updateStatus = asyncHandler(async (req, res) => {
   });
 });
 
+export const deletePlan = asyncHandler(async (req, res) => {
+  const restaurantId = req.restaurant?.id || req.user?.id;
+  await subscriptionService.deleteTiffinPlan(restaurantId, req.params.id);
+  return successResponse(res, {
+    message: 'Tiffin plan deleted successfully'
+  });
+});
+
 export default {
   getRestaurantPlans,
   createPlan,
   updatePlan,
-  updateStatus
+  updateStatus,
+  deletePlan
 };

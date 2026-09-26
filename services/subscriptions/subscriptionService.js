@@ -58,6 +58,16 @@ export const createTiffinPlan = async (restaurantId, planData) => {
   return plan;
 };
 
+export const deleteTiffinPlan = async (restaurantId, planId) => {
+  const plan = await TiffinPlan.findOneAndDelete({ _id: planId, restaurantId });
+  if (!plan) {
+    const err = new Error('Tiffin plan not found');
+    err.statusCode = 404;
+    throw err;
+  }
+  return plan;
+};
+
 export const getTiffinPlansByRestaurant = async (restaurantId) => {
   return await TiffinPlan.find({ restaurantId }).sort({ sortOrder: 1, createdAt: -1 });
 };
@@ -741,5 +751,6 @@ export default {
   resumeSubscription,
   cancelSubscription,
   skipOccurrence,
-  runSubscriptionScheduler
+  runSubscriptionScheduler,
+  deleteTiffinPlan
 };

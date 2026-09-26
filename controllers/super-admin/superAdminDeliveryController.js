@@ -31,9 +31,17 @@ export const getDeliveryPartners = asyncHandler(async (req, res) => {
 
   const partners = await DeliveryPartner.find(query).sort({ updatedAt: -1 });
 
+  const allPartners = await DeliveryPartner.find({});
+  const statusCounts = {
+    ALL: allPartners.length,
+    PENDING_REVIEW: allPartners.filter(p => p.onboardingStatus === 'PENDING_REVIEW' || p.onboardingStatus === 'ONBOARDING_IN_PROGRESS' || p.onboardingStatus === 'PENDING_PAYMENT' || p.onboardingStatus === 'PAYMENT_SUCCESS' || p.onboardingStatus === 'DRAFT' || p.onboardingStatus === 'OTP_VERIFIED').length,
+    APPROVED: allPartners.filter(p => p.onboardingStatus === 'APPROVED').length,
+    REJECTED: allPartners.filter(p => p.onboardingStatus === 'REJECTED' || p.onboardingStatus === 'BLOCKED').length
+  };
+
   return successResponse(res, {
     message: 'Delivery partner applications retrieved',
-    data: { partners }
+    data: { partners, statusCounts }
   });
 });
 

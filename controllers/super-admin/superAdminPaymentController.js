@@ -30,6 +30,7 @@ export const getAllPayments = async (req, res) => {
     const payments = await Payment.find(filter)
       .populate('customer', 'name mobile email')
       .populate('restaurant', 'name mobile')
+      .populate('deliveryPartner', 'fullName mobile')
       .populate('subscription', 'subscriptionNumber pricing')
       .sort({ createdAt: -1 })
       .skip(skip)

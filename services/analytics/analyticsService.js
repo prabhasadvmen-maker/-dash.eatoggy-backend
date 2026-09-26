@@ -83,7 +83,7 @@ export const getSuperAdminAnalyticsService = async (query = {}) => {
 
   // 5. Financial Metrics
   const deliveredOrdersList = await Order.find({ ...orderFilter, orderStatus: 'DELIVERED' }).select('pricing').lean();
-  const totalGMV = deliveredOrdersList.reduce((sum, o) => sum + (o.pricing?.finalTotal || 0), 0);
+  const totalGMV = deliveredOrdersList.reduce((sum, o) => sum + (o.pricing?.grandTotal || 0), 0);
   const estimatedCommissionEarnings = Math.round(totalGMV * 0.15);
   const totalGST = deliveredOrdersList.reduce((sum, o) => sum + (o.pricing?.tax || 0), 0);
 
@@ -126,7 +126,7 @@ export const getSuperAdminAnalyticsService = async (query = {}) => {
       $group: {
         _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
         count: { $sum: 1 },
-        revenue: { $sum: '$pricing.finalTotal' }
+        revenue: { $sum: '$pricing.grandTotal' }
       }
     },
     { $sort: { _id: 1 } },
@@ -199,7 +199,7 @@ export const getRestaurantAnalyticsService = async (restaurantId, query = {}) =>
   const cancelledOrders = await Order.countDocuments({ ...matchFilter, orderStatus: 'CANCELLED' });
 
   const deliveredOrdersList = await Order.find({ ...matchFilter, orderStatus: 'DELIVERED' }).select('pricing').lean();
-  const totalRevenue = deliveredOrdersList.reduce((sum, o) => sum + (o.pricing?.finalTotal || 0), 0);
+  const totalRevenue = deliveredOrdersList.reduce((sum, o) => sum + (o.pricing?.grandTotal || 0), 0);
   const platformCommission = Math.round(totalRevenue * 0.15);
   const netEarnings = totalRevenue - platformCommission;
   const avgOrderValue = deliveredOrders > 0 ? Math.round(totalRevenue / deliveredOrders) : 0;

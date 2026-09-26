@@ -1,7 +1,7 @@
 import MenuItem from '../../models/menu/MenuItem.js';
 import Category from '../../models/menu/Category.js';
 import Subcategory from '../../models/menu/Subcategory.js';
-import { uploadToR2 } from '../../integrations/storage/r2UploadService.js';
+import { uploadToR2, getPresignedUrl } from '../../integrations/storage/r2UploadService.js';
 
 // Helper to check category and subcategory validity
 const validateCategorySubcategory = async (categoryId, subcategoryId) => {
@@ -85,8 +85,15 @@ export const getMenuItems = async (req, res) => {
       .populate('categoryId', 'name')
       .populate('subcategoryId', 'name')
       .sort({ createdAt: -1 });
+    const itemsWithPresignedUrls = await Promise.all(items.map(async (item) => {
+      const itemObj = item.toObject();
+      if (itemObj.image) {
+        itemObj.image = await getPresignedUrl(itemObj.image);
+      }
+      return itemObj;
+    }));
 
-    res.json({ data: items });
+    res.json({ data: itemsWithPresignedUrls });
   } catch (error) {
     console.error('Error fetching menu items:', error);
     res.status(500).json({ message: 'Failed to fetch menu items' });
@@ -104,8 +111,12 @@ export const getMenuItemById = async (req, res) => {
     if (!item) {
       return res.status(404).json({ message: 'Menu Item not found' });
     }
+    const itemObj = item.toObject();
+    if (itemObj.image) {
+      itemObj.image = await getPresignedUrl(itemObj.image);
+    }
 
-    res.json({ data: item });
+    res.json({ data: itemObj });
   } catch (error) {
     if (error.kind === 'ObjectId') return res.status(404).json({ message: 'Menu Item not found' });
     console.error('Error fetching menu item:', error);
@@ -129,9 +140,7 @@ export const updateMenuItem = async (req, res) => {
     // "Restaurant should NOT freely edit an item that is currently PENDING_REVIEW unless explicitly allowed" 
     // We will allow edits for DRAFT and REJECTED. 
     // If APPROVED, editing moves it to PENDING_REVIEW (unless just availability changes).
-    if (item.status === 'PENDING_REVIEW') {
-      return res.status(400).json({ message: 'Cannot edit an item that is currently under review. Please wait for verification.' });
-    }
+    // We allow edits for DRAFT, REJECTED, APPROVED, and PENDING_REVIEW items.
 
     const checkCatId = categoryId || item.categoryId.toString();
     const checkSubCatId = subcategoryId || item.subcategoryId.toString();
@@ -256,9 +265,7 @@ export const deleteDraft = async (req, res) => {
       return res.status(404).json({ message: 'Menu Item not found' });
     }
 
-    if (item.status !== 'DRAFT') {
-      return res.status(400).json({ message: 'Only draft items can be deleted' });
-    }
+    // Removed status check to allow deleting any item as requested
 
     await item.deleteOne();
     res.json({ message: 'Draft deleted successfully' });
