@@ -87,6 +87,23 @@ export const getAvailableJobs = async (partnerId) => {
 };
 
 /**
+ * Toggle Delivery Partner Online Status
+ */
+export const toggleAvailability = async (partnerId, isOnline) => {
+  const partner = await DeliveryPartner.findByIdAndUpdate(
+    partnerId,
+    { isOnline, isAvailable: isOnline },
+    { new: true }
+  );
+
+  if (!partner) {
+    throw { statusCode: 404, message: 'Delivery partner not found' };
+  }
+
+  return partner;
+};
+
+/**
  * Get current active job assigned to the partner
  */
 export const getActiveJobForPartner = async (partnerId) => {

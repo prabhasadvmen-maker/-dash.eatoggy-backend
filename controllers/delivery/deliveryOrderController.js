@@ -10,6 +10,38 @@ const getCustomerId = (req) => {
 };
 
 /**
+ * @desc Toggle Delivery Partner Online Status
+ * @route PUT /api/delivery/availability
+ * @access Private (Delivery Partner)
+ */
+export const toggleAvailability = async (req, res, next) => {
+  try {
+    const partnerId = getPartnerId(req);
+    if (!partnerId) {
+      return errorResponse(res, { statusCode: 401, message: 'Unauthorized delivery partner access' });
+    }
+
+    const { isOnline } = req.body;
+    if (typeof isOnline !== 'boolean') {
+      return errorResponse(res, { statusCode: 400, message: 'isOnline must be a boolean' });
+    }
+
+    const partner = await deliveryService.toggleAvailability(partnerId, isOnline);
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: `Delivery partner is now ${isOnline ? 'online' : 'offline'}`,
+      data: { isOnline: partner.isOnline }
+    });
+  } catch (err) {
+    if (err.statusCode) {
+      return errorResponse(res, { statusCode: err.statusCode, message: err.message });
+    }
+    next(err);
+  }
+};
+
+/**
  * @desc Get available delivery jobs for delivery partner
  * @route GET /api/delivery/jobs/available
  * @access Private (Delivery Partner)

@@ -16,8 +16,11 @@ import { asyncHandler } from '../../common/asyncHandler.js';
  * @access  Protected (Delivery Partner JWT)
  */
 export const registerProfile = asyncHandler(async (req, res) => {
-  const partnerId = req.deliveryPartner?.id || req.user?.id;
-  const { fullName, email, city, zone, vehicleType, selectedAddress, latitude, longitude } = req.body;
+  const { mobile, fullName, email, city, zone, vehicleType, selectedAddress, latitude, longitude } = req.body;
+
+  if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
+    return errorResponse(res, { statusCode: 400, message: 'Valid 10-digit mobile number is required' });
+  }
 
   if (!fullName || !city || !zone || !vehicleType) {
     return errorResponse(res, {
@@ -34,9 +37,16 @@ export const registerProfile = asyncHandler(async (req, res) => {
     });
   }
 
-  const partner = await DeliveryPartner.findById(partnerId);
+  let partner = await DeliveryPartner.findOne({ mobile });
   if (!partner) {
-    return errorResponse(res, { statusCode: 404, message: 'Delivery partner account not found' });
+    partner = await DeliveryPartner.create({
+      mobile,
+      role: 'DeliveryPartner',
+      isActive: false,
+      isMobileVerified: false,
+      onboardingStatus: 'ONBOARDING_IN_PROGRESS',
+      currentStep: 'PROFILE'
+    });
   }
 
   partner.fullName = fullName.trim();

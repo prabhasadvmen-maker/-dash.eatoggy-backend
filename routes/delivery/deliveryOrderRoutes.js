@@ -5,7 +5,9 @@ import * as deliveryOrderController from '../../controllers/delivery/deliveryOrd
 const router = express.Router();
 
 // Delivery Partner Routes
+router.put('/availability', protectDeliveryPartner, deliveryOrderController.toggleAvailability);
 router.get('/jobs/available', protectDeliveryPartner, deliveryOrderController.getAvailableJobs);
+router.get('/available-jobs', protectDeliveryPartner, deliveryOrderController.getAvailableJobs);
 router.get('/jobs/active', protectDeliveryPartner, deliveryOrderController.getActiveJob);
 router.post('/jobs/:id/accept', protectDeliveryPartner, deliveryOrderController.acceptJob);
 router.patch('/jobs/:id/status', protectDeliveryPartner, deliveryOrderController.updateStatus);

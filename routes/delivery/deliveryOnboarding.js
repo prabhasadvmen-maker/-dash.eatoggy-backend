@@ -17,11 +17,11 @@ import { upload } from '../../integrations/storage/r2UploadService.js';
 const router = express.Router();
 
 router.get('/fee', getActiveFee);
+router.post('/profile', registerProfile);  // New user registration - Public
 
 // Protected Onboarding Routes
 router.use(protectDeliveryPartner);
 
-router.post('/profile', registerProfile);  // New user registration
 router.put('/profile', updateProfile);     // Existing user profile update
 router.put('/location', updateLocation);
 
