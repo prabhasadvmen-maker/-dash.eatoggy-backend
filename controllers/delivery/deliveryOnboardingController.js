@@ -11,6 +11,67 @@ import { successResponse, errorResponse } from '../../common/apiResponse.js';
 import { asyncHandler } from '../../common/asyncHandler.js';
 
 /**
+ * @desc    Register Delivery Partner Profile (New User - No Password)
+ * @route   POST /api/delivery/onboarding/profile
+ * @access  Protected (Delivery Partner JWT)
+ */
+export const registerProfile = asyncHandler(async (req, res) => {
+  const partnerId = req.deliveryPartner?.id || req.user?.id;
+  const { fullName, email, city, zone, vehicleType, selectedAddress, latitude, longitude } = req.body;
+
+  if (!fullName || !city || !zone || !vehicleType) {
+    return errorResponse(res, {
+      statusCode: 400,
+      message: 'fullName, city, zone, and vehicleType are required'
+    });
+  }
+
+  const validVehicles = ['Bike', 'Scooter', 'EV Bike', 'Bicycle', 'Car'];
+  if (!validVehicles.includes(vehicleType)) {
+    return errorResponse(res, {
+      statusCode: 400,
+      message: `Invalid vehicleType. Must be one of: ${validVehicles.join(', ')}`
+    });
+  }
+
+  const partner = await DeliveryPartner.findById(partnerId);
+  if (!partner) {
+    return errorResponse(res, { statusCode: 404, message: 'Delivery partner account not found' });
+  }
+
+  partner.fullName = fullName.trim();
+  if (email) partner.email = email.toLowerCase().trim();
+  partner.city = city.trim();
+  partner.zone = zone.trim();
+  partner.vehicleType = vehicleType;
+  if (selectedAddress) partner.selectedAddress = selectedAddress.trim();
+  if (latitude !== undefined) partner.latitude = Number(latitude);
+  if (longitude !== undefined) partner.longitude = Number(longitude);
+  partner.currentStep = selectedAddress ? 'DOCUMENTS' : 'LOCATION';
+  partner.onboardingStatus = 'ONBOARDING_IN_PROGRESS';
+
+  await partner.save();
+
+  return successResponse(res, {
+    message: 'Profile registered successfully',
+    data: {
+      partner: {
+        id: partner._id,
+        mobile: partner.mobile,
+        fullName: partner.fullName,
+        email: partner.email || null,
+        city: partner.city,
+        zone: partner.zone,
+        vehicleType: partner.vehicleType,
+        selectedAddress: partner.selectedAddress || null,
+        onboardingStatus: partner.onboardingStatus,
+        currentStep: partner.currentStep
+      }
+    }
+  });
+});
+
+/**
  * @desc    Save Partner Profile Data
  * @route   PUT /api/delivery/onboarding/profile
  * @access  Protected (Delivery Partner JWT)

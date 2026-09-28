@@ -1,5 +1,6 @@
 import express from 'express';
 import {
+  registerProfile,
   updateProfile,
   updateLocation,
   uploadDocuments,
@@ -20,7 +21,8 @@ router.get('/fee', getActiveFee);
 // Protected Onboarding Routes
 router.use(protectDeliveryPartner);
 
-router.put('/profile', updateProfile);
+router.post('/profile', registerProfile);  // New user registration
+router.put('/profile', updateProfile);     // Existing user profile update
 router.put('/location', updateLocation);
 
 router.post(

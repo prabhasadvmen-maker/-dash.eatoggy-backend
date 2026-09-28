@@ -100,10 +100,15 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     { expiresIn: '7d' }
   );
 
+  const isProfileComplete = !!(partner.fullName && partner.city && partner.zone && partner.vehicleType);
+  const isNewUser = !isProfileComplete;
+
   return successResponse(res, {
     message: 'Mobile verified successfully',
     data: {
       token,
+      isNewUser,
+      isProfileComplete,
       partner: {
         id: partner._id,
         mobile: partner.mobile,
