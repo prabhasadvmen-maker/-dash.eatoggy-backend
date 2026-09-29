@@ -7,7 +7,7 @@ import Restaurant from '../../models/restaurants/Restaurant.js';
 import Payment from '../../models/payments/Payment.js';
 import OnboardingFee from '../../models/super-admin/OnboardingFee.js';
 import { protectRestaurant } from '../../middleware/authMiddleware.js';
-import { upload, uploadToR2 } from '../../integrations/storage/r2UploadService.js';
+import { upload, uploadToR2, getPresignedUrl } from '../../integrations/storage/r2UploadService.js';
 import { successResponse, errorResponse } from '../../common/apiResponse.js';
 import { asyncHandler } from '../../common/asyncHandler.js';
 
@@ -225,13 +225,16 @@ const businessDocsHandler = asyncHandler(async (req, res) => {
   restaurant.currentStep = 'IDENTITY_BANK';
   await restaurant.save();
 
+  const presignedGst = await getPresignedUrl(gstUrl);
+  const presignedFssai = await getPresignedUrl(fssaiUrl);
+
   return successResponse(res, {
     message: 'Business documents saved successfully',
     data: { 
       currentStep: restaurant.currentStep,
       documents: {
-        gstCertificate: restaurant.documents.gstCertificate,
-        foodLicense: restaurant.documents.foodLicense
+        gstCertificate: presignedGst,
+        foodLicense: presignedFssai
       }
     }
   });
@@ -280,13 +283,16 @@ router.put('/identity-bank', idBankUpload, asyncHandler(async (req, res) => {
   restaurant.currentStep = 'REVIEW_PAYMENT';
   await restaurant.save();
 
+  const presignedAadhaarFront = restaurant.documents.aadhaarFront ? await getPresignedUrl(restaurant.documents.aadhaarFront) : null;
+  const presignedAadhaarBack = restaurant.documents.aadhaarBack ? await getPresignedUrl(restaurant.documents.aadhaarBack) : null;
+
   return successResponse(res, {
     message: 'Identity and bank details saved successfully',
     data: { 
       currentStep: restaurant.currentStep,
       documents: {
-        aadhaarFront: restaurant.documents.aadhaarFront,
-        aadhaarBack: restaurant.documents.aadhaarBack
+        aadhaarFront: presignedAadhaarFront,
+        aadhaarBack: presignedAadhaarBack
       },
       bankDetails: restaurant.bankDetails
     }
