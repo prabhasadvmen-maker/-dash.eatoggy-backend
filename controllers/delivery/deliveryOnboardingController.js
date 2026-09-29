@@ -11,20 +11,6 @@ import { uploadToR2, getPresignedUrl } from '../../integrations/storage/r2Upload
 import { successResponse, errorResponse } from '../../common/apiResponse.js';
 import { asyncHandler } from '../../common/asyncHandler.js';
 
-const NEXT_STEP_MAP = {
-  PROFILE: 'LOCATION',
-  LOCATION: 'DOCUMENTS',
-  DOCUMENTS: 'BANK_DETAILS',
-  BANK_DETAILS: 'ONBOARDING_FEE',
-  ONBOARDING_FEE: 'PAYMENT',
-  PAYMENT: 'PENDING_REVIEW',
-  PENDING_REVIEW: 'APPROVED',
-  APPROVED: 'APPROVED',
-  REJECTED: 'PROFILE'
-};
-
-const getNextStep = (currentStep) => NEXT_STEP_MAP[currentStep] || 'PROFILE';
-
 /**
  * @desc    Register Delivery Partner Profile (New User - No Password)
  * @route   POST /api/delivery/onboarding/profile
@@ -74,8 +60,7 @@ export const registerProfile = asyncHandler(async (req, res) => {
           zone: existingPartner.zone,
           vehicleType: existingPartner.vehicleType,
           onboardingStatus: existingPartner.onboardingStatus,
-          currentStep: existingPartner.currentStep,
-          nextStep: getNextStep(existingPartner.currentStep)
+          nextStep: existingPartner.currentStep
         }
       }
     });
@@ -124,8 +109,7 @@ export const registerProfile = asyncHandler(async (req, res) => {
           vehicleType: existingPartner.vehicleType || null,
           selectedAddress: existingPartner.selectedAddress || null,
           onboardingStatus: existingPartner.onboardingStatus,
-          currentStep: existingPartner.currentStep,
-          nextStep: getNextStep(existingPartner.currentStep)
+          nextStep: existingPartner.currentStep
         }
       }
     });
@@ -188,8 +172,7 @@ export const registerProfile = asyncHandler(async (req, res) => {
         vehicleType: partner.vehicleType,
         selectedAddress: partner.selectedAddress || null,
         onboardingStatus: partner.onboardingStatus,
-        currentStep: partner.currentStep,
-        nextStep: getNextStep(partner.currentStep)
+        nextStep: partner.currentStep
       }
     }
   });
