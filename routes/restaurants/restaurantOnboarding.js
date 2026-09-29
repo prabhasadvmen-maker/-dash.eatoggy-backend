@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import Razorpay from 'razorpay';
 import Restaurant from '../../models/restaurants/Restaurant.js';
 import Payment from '../../models/payments/Payment.js';
@@ -79,9 +80,20 @@ router.put('/business-details', asyncHandler(async (req, res) => {
 
   await restaurant.save();
 
+  const payload = {
+    restaurant: { id: restaurant._id, role: 'Restaurant' },
+    user: { id: restaurant._id, role: 'Restaurant' }
+  };
+  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+
   return successResponse(res, {
     message: 'Business details saved successfully',
-    data: { currentStep: restaurant.currentStep, onboardingStatus: restaurant.onboardingStatus }
+    token,
+    data: {
+      currentStep: restaurant.currentStep,
+      onboardingStatus: restaurant.onboardingStatus,
+      restaurantId: restaurant._id
+    }
   });
 }));
 
