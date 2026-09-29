@@ -4,7 +4,12 @@ import {
   sendOtp,
   verifyOtp,
   login,
-  getMe
+  getMe,
+  getDashboard,
+  saveLocation,
+  updateProfile,
+  deleteAccount,
+  logout
 } from '../../controllers/customers/customerAuthController.js';
 import { protectCustomer } from '../../middleware/authMiddleware.js';
 
@@ -20,5 +25,10 @@ router.post('/login', login);
 
 // Protected routes (Customer JWT required)
 router.get('/me', protectCustomer, getMe);
+router.patch('/me', protectCustomer, updateProfile);
+router.delete('/account', protectCustomer, deleteAccount);
+router.post('/logout', protectCustomer, logout);
+router.get('/dashboard', protectCustomer, getDashboard);
+router.post('/location', protectCustomer, saveLocation);
 
 export default router;

@@ -54,11 +54,46 @@ const cartSchema = new mongoose.Schema(
       type: [cartItemSchema],
       default: []
     },
-    subtotal: {
+    couponCode: {
+      type: String,
+      default: null
+    },
+    discount: {
       type: Number,
-      required: true,
-      min: 0,
-      default: 0
+      default: 0,
+      min: 0
+    },
+    pricing: {
+      subtotal: {
+        type: Number,
+        default: 0,
+        min: 0
+      },
+      packagingCharge: {
+        type: Number,
+        default: 0,
+        min: 0
+      },
+      platformFee: {
+        type: Number,
+        default: 0,
+        min: 0
+      },
+      deliveryFee: {
+        type: Number,
+        default: 0,
+        min: 0
+      },
+      gst: {
+        type: Number,
+        default: 0,
+        min: 0
+      },
+      grandTotal: {
+        type: Number,
+        default: 0,
+        min: 0
+      }
     }
   },
   { timestamps: true }

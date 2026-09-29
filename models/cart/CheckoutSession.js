@@ -31,28 +31,42 @@ const checkoutItemSchema = new mongoose.Schema(
   { _id: true }
 );
 
-const checkoutSessionSchema = new mongoose.Schema(
+const deliveryAddressSchema = new mongoose.Schema(
   {
-    customerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Customer',
-      required: true,
-      index: true
-    },
-    restaurantId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Restaurant',
+    name: {
+      type: String,
       required: true
     },
-    addressId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Address',
-      default: null
-    },
-    items: {
-      type: [checkoutItemSchema],
+    mobile: {
+      type: String,
       required: true
     },
+    addressLine1: {
+      type: String,
+      required: true
+    },
+    addressLine2: {
+      type: String,
+      default: ''
+    },
+    city: {
+      type: String,
+      required: true
+    },
+    pincode: {
+      type: String,
+      required: true
+    },
+    label: {
+      type: String,
+      default: 'Home'
+    }
+  },
+  { _id: false }
+);
+
+const pricingSchema = new mongoose.Schema(
+  {
     itemSubtotal: {
       type: Number,
       required: true
@@ -83,6 +97,40 @@ const checkoutSessionSchema = new mongoose.Schema(
     },
     grandTotal: {
       type: Number,
+      required: true
+    }
+  },
+  { _id: false }
+);
+
+const checkoutSessionSchema = new mongoose.Schema(
+  {
+    customerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Customer',
+      required: true,
+      index: true
+    },
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Restaurant',
+      required: true
+    },
+    addressId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Address',
+      default: null
+    },
+    items: {
+      type: [checkoutItemSchema],
+      required: true
+    },
+    deliveryAddress: {
+      type: deliveryAddressSchema,
+      default: null
+    },
+    pricing: {
+      type: pricingSchema,
       required: true
     },
     status: {

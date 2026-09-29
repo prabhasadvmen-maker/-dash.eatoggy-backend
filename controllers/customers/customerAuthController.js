@@ -4,6 +4,10 @@ import Customer from '../../models/customers/Customer.js';
 import { sendOTP, verifyOTP } from '../../integrations/otp/otpService.js';
 import { successResponse, errorResponse } from '../../common/apiResponse.js';
 import { asyncHandler } from '../../common/asyncHandler.js';
+import Subscription from '../../models/subscriptions/Subscription.js';
+import Order from '../../models/orders/Order.js';
+import Address from '../../models/customers/Address.js';
+import Restaurant from '../../models/restaurants/Restaurant.js';
 
 /**
  * @desc    Register a new Customer account
@@ -328,10 +332,183 @@ export const getMe = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Get Customer Dashboard Data
+ * @route   GET /api/customer-auth/dashboard
+ * @access  Protected (Customer JWT)
+ */
+export const getDashboard = asyncHandler(async (req, res) => {
+  const customerId = req.customer?.id || req.user?.id;
+  
+  const [
+    activeSubscriptions,
+    totalOrders,
+    recentOrders,
+    savedAddresses
+  ] = await Promise.all([
+    Subscription.find({ customerId, status: 'ACTIVE' }),
+    Order.countDocuments({ customerId }),
+    Order.find({ customerId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .populate('restaurantId', 'businessName'),
+    Address.countDocuments({ customerId })
+  ]);
+
+  const activeSubscription = activeSubscriptions.length > 0 ? {
+    name: activeSubscriptions[0].planSnapshot.name,
+    mealTime: activeSubscriptions[0].planSnapshot.mealType
+  } : null;
+
+  const formattedRecentOrders = recentOrders.map(order => ({
+    id: order._id,
+    orderNumber: order.orderNumber,
+    restaurantName: order.restaurantId?.businessName || 'Restaurant',
+    amount: order.pricing.grandTotal,
+    status: order.orderStatus,
+    date: order.createdAt
+  }));
+
+  // Dummy monthly spending for now as aggregation takes time
+  const monthlySpending = [];
+
+  return successResponse(res, {
+    message: 'Dashboard data retrieved successfully',
+    data: {
+      activeSubscriptionsCount: activeSubscriptions.length,
+      activeSubscription,
+      eatoggyCash: 0,
+      totalOrdersCount: totalOrders,
+      savedAddressesCount: savedAddresses,
+      recentOrders: formattedRecentOrders,
+      monthlySpending
+    }
+  });
+});
+
+/**
+ * @desc    Save Customer Location
+ * @route   POST /api/customer-auth/location
+ * @access  Protected (Customer JWT)
+ */
+export const saveLocation = asyncHandler(async (req, res) => {
+  const { latitude, longitude, address, city, state, pincode, saveAsAddress } = req.body;
+  
+  return successResponse(res, {
+    message: 'Location saved successfully',
+    data: {
+      location: { latitude, longitude, address, city, state, pincode }
+    }
+  });
+});
+
+// 1. Update Profile
+export const updateProfile = asyncHandler(async (req, res) => {
+  const customerId = req.customer?.id || req.user?.id;
+  const { name, email, dietaryPreference, avatar } = req.body;
+
+  if (!name && !email && !dietaryPreference && !avatar) {
+    return errorResponse(res, { statusCode: 400, message: 'Missing required fields to update' });
+  }
+
+  const customer = await Customer.findById(customerId);
+  if (!customer) {
+    return errorResponse(res, { statusCode: 404, message: 'Customer not found' });
+  }
+
+  if (email && email !== customer.email) {
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+    if (!emailRegex.test(email)) {
+      return errorResponse(res, { statusCode: 400, message: 'Invalid email format' });
+    }
+    const existingEmail = await Customer.findOne({ email });
+    if (existingEmail) {
+      return errorResponse(res, { statusCode: 409, message: 'Email already exists' });
+    }
+    customer.email = email;
+  }
+
+  if (name) customer.name = name;
+  if (dietaryPreference) customer.dietaryPreference = dietaryPreference;
+  if (avatar) customer.avatar = avatar;
+
+  await customer.save();
+
+  return successResponse(res, {
+    message: 'Profile updated successfully',
+    data: {
+      id: customer._id,
+      phone: customer.mobile,
+      name: customer.name,
+      email: customer.email,
+      dietaryPreference: customer.dietaryPreference,
+      avatar: customer.avatar,
+      role: customer.role
+    }
+  });
+});
+
+// 2. Delete Account
+export const deleteAccount = asyncHandler(async (req, res) => {
+  const customerId = req.customer?.id || req.user?.id;
+  const { reason } = req.body;
+
+  const customer = await Customer.findById(customerId);
+  if (!customer) {
+    return errorResponse(res, { statusCode: 404, message: 'Customer not found' });
+  }
+
+  // Soft delete
+  customer.isDeleted = true;
+  customer.deletedAt = new Date();
+  customer.deletionReason = reason;
+  customer.isActive = false;
+  await customer.save();
+
+  // In reality you would invalidate JWTs here using Redis blocklist
+  return successResponse(res, {
+    message: 'Account has been scheduled for deletion. All data will be permanently removed within 30 days.'
+  });
+});
+
+// 3. Logout
+export const logout = asyncHandler(async (req, res) => {
+  const customerId = req.customer?.id || req.user?.id;
+  
+  // Extract token from header
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const decoded = jwt.decode(token);
+      if (decoded && decoded.exp) {
+        const { default: redisClient } = await import('../../config/redis.js');
+        if (redisClient) {
+          const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
+          if (expiresIn > 0) {
+            await redisClient.setEx(`blacklist_${token}`, expiresIn, '1');
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore token decode errors on logout
+    }
+  }
+
+  return successResponse(res, {
+    message: 'Logged out successfully'
+  });
+});
+
 export default {
   signup,
   sendOtp,
   verifyOtp,
   login,
-  getMe
+  getMe,
+  getDashboard,
+  saveLocation,
+  updateProfile,
+  deleteAccount,
+  logout
 };

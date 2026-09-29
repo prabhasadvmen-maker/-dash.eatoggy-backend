@@ -43,6 +43,11 @@ import superAdminSupportRouter from './routes/super-admin/superAdminSupport.js';
 import superAdminRefundsRouter from './routes/super-admin/superAdminRefunds.js';
 import superAdminCouponsRouter from './routes/super-admin/superAdminCoupon.js';
 import superAdminCityZoneRouter from './routes/super-admin/superAdminCityZone.js';
+import categoryRoutes from './routes/categories/categoryRoutes.js';
+import offerRoutes from './routes/offers/offerRoutes.js';
+import notificationRoutes from './routes/notifications/notificationRoutes.js';
+import serviceabilityRoutes from './routes/serviceability/serviceabilityRoutes.js';
+import configRoutes from './routes/config/configRoutes.js';
 import { getAllCities } from './controllers/super-admin/superAdminCityZoneController.js';
 import { startSubscriptionSchedulerJob, stopSubscriptionSchedulerJob } from './jobs/subscriptionSchedulerJob.js';
 import { protect } from './middleware/authMiddleware.js';
@@ -113,6 +118,11 @@ app.use('/api', reviewRoutes);
 app.use('/api', supportTicketRoutes);
 app.use('/api', superAdminReportRoutes);
 app.use('/api', analyticsRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/offers', offerRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/serviceability', serviceabilityRoutes);
+app.use('/api/public', configRoutes);
 
 // Delivery Partners Routes
 app.use('/api/delivery-auth', deliveryAuthRoutes);

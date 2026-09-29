@@ -25,7 +25,7 @@ const customerSchema = new mongoose.Schema(
       validate: {
         validator: function (v) {
           if (!v) return true;
-          return /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/.test(v);
+          return /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,})+$/.test(v);
         },
         message: (props) => `${props.value} is not a valid email address!`
       }
@@ -49,6 +49,32 @@ const customerSchema = new mongoose.Schema(
     lastLogin: {
       type: Date,
       default: null
+    },
+    avatar: {
+      type: String,
+      default: null
+    },
+    dietaryPreference: {
+      type: String,
+      enum: ['VEG', 'NON_VEG', 'BOTH'],
+      default: 'BOTH'
+    },
+    fcmTokens: {
+      type: [String],
+      default: []
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    deletedAt: {
+      type: Date,
+      default: null
+    },
+    deletionReason: {
+      type: String,
+      default: null
     }
   },
   { timestamps: true }
@@ -62,4 +88,3 @@ customerSchema.methods.toJSON = function () {
 };
 
 export default mongoose.model('Customer', customerSchema);
-
