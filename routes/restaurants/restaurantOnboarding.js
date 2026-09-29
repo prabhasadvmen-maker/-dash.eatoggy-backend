@@ -227,7 +227,13 @@ const businessDocsHandler = asyncHandler(async (req, res) => {
 
   return successResponse(res, {
     message: 'Business documents saved successfully',
-    data: { currentStep: restaurant.currentStep }
+    data: { 
+      currentStep: restaurant.currentStep,
+      documents: {
+        gstCertificate: restaurant.documents.gstCertificate,
+        foodLicense: restaurant.documents.foodLicense
+      }
+    }
   });
 });
 
@@ -276,7 +282,14 @@ router.put('/identity-bank', idBankUpload, asyncHandler(async (req, res) => {
 
   return successResponse(res, {
     message: 'Identity and bank details saved successfully',
-    data: { currentStep: restaurant.currentStep }
+    data: { 
+      currentStep: restaurant.currentStep,
+      documents: {
+        aadhaarFront: restaurant.documents.aadhaarFront,
+        aadhaarBack: restaurant.documents.aadhaarBack
+      },
+      bankDetails: restaurant.bankDetails
+    }
   });
 }));
 
