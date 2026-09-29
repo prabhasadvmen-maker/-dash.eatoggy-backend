@@ -1,3 +1,4 @@
+import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import Razorpay from 'razorpay';
 import DeliveryPartner from '../../models/delivery/DeliveryPartner.js';
@@ -16,16 +17,109 @@ import { asyncHandler } from '../../common/asyncHandler.js';
  * @access  Protected (Delivery Partner JWT)
  */
 export const registerProfile = asyncHandler(async (req, res) => {
-  const { mobile, fullName, email, city, zone, vehicleType, selectedAddress, latitude, longitude } = req.body;
+  const { mobile, fullName, email, cityandzone, vehicleType, selectedAddress, latitude, longitude } = req.body;
+  const cityZoneMatch = cityandzone ? cityandzone.match(/^(.+?)\((.+?)\)$/) : null;
+  const city = cityZoneMatch ? cityZoneMatch[1].trim() : cityandzone?.trim();
+  const zone = cityZoneMatch ? cityZoneMatch[2].trim() : null;
 
+  // Step 1: Mobile validation
   if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
     return errorResponse(res, { statusCode: 400, message: 'Valid 10-digit mobile number is required' });
   }
 
-  if (!fullName || !city || !zone || !vehicleType) {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET not set');
+
+  // Step 2: Check if partner already exists
+  const existingPartner = await DeliveryPartner.findOne({ mobile });
+
+  // --- EXISTING USER: Already registered & approved/active → Login directly ---
+  if (existingPartner && existingPartner.onboardingStatus === 'APPROVED' && existingPartner.isActive) {
+    existingPartner.lastLogin = new Date();
+    await existingPartner.save();
+
+    const token = jwt.sign(
+      { user: { id: existingPartner._id, role: 'DeliveryPartner' } },
+      secret,
+      { expiresIn: '7d' }
+    );
+
+    return successResponse(res, {
+      message: 'Welcome back! Login successful.',
+      data: {
+        token,
+        isNewUser: false,
+        isProfileComplete: true,
+        action: 'LOGIN',
+        partner: {
+          id: existingPartner._id,
+          mobile: existingPartner.mobile,
+          fullName: existingPartner.fullName,
+          email: existingPartner.email || null,
+          city: existingPartner.city,
+          zone: existingPartner.zone,
+          vehicleType: existingPartner.vehicleType,
+          onboardingStatus: existingPartner.onboardingStatus,
+          currentStep: existingPartner.currentStep
+        }
+      }
+    });
+  }
+
+  // --- EXISTING USER: Onboarding in progress → Update profile data & Resume ---
+  if (existingPartner) {
+    const validVehicles = ['Bike', 'Scooter', 'EV Bike', 'Bicycle', 'Car'];
+
+    if (fullName) existingPartner.fullName = fullName.trim();
+    if (email) existingPartner.email = email.toLowerCase().trim();
+    if (city) existingPartner.city = city;
+    if (zone) existingPartner.zone = zone;
+    if (vehicleType && validVehicles.includes(vehicleType)) existingPartner.vehicleType = vehicleType;
+    if (selectedAddress) existingPartner.selectedAddress = selectedAddress.trim();
+    if (latitude !== undefined) existingPartner.latitude = Number(latitude);
+    if (longitude !== undefined) existingPartner.longitude = Number(longitude);
+
+    const isNowProfileComplete = !!(existingPartner.fullName && existingPartner.city && existingPartner.zone && existingPartner.vehicleType);
+    if (isNowProfileComplete && existingPartner.currentStep === 'PROFILE') {
+      existingPartner.currentStep = selectedAddress ? 'DOCUMENTS' : 'LOCATION';
+    }
+
+    await existingPartner.save();
+
+    const token = jwt.sign(
+      { user: { id: existingPartner._id, role: 'DeliveryPartner' } },
+      secret,
+      { expiresIn: '7d' }
+    );
+
+    return successResponse(res, {
+      message: 'Onboarding in progress. Profile updated, please continue.',
+      data: {
+        token,
+        isNewUser: false,
+        isProfileComplete: isNowProfileComplete,
+        action: 'RESUME_ONBOARDING',
+        partner: {
+          id: existingPartner._id,
+          mobile: existingPartner.mobile,
+          fullName: existingPartner.fullName || null,
+          email: existingPartner.email || null,
+          city: existingPartner.city || null,
+          zone: existingPartner.zone || null,
+          vehicleType: existingPartner.vehicleType || null,
+          selectedAddress: existingPartner.selectedAddress || null,
+          onboardingStatus: existingPartner.onboardingStatus,
+          currentStep: existingPartner.currentStep
+        }
+      }
+    });
+  }
+
+  // --- NEW USER: Validate required profile fields ---
+  if (!fullName || !cityandzone || !vehicleType) {
     return errorResponse(res, {
       statusCode: 400,
-      message: 'fullName, city, zone, and vehicleType are required'
+      message: 'fullName, cityandzone, and vehicleType are required for new registration'
     });
   }
 
@@ -37,34 +131,37 @@ export const registerProfile = asyncHandler(async (req, res) => {
     });
   }
 
-  let partner = await DeliveryPartner.findOne({ mobile });
-  if (!partner) {
-    partner = await DeliveryPartner.create({
-      mobile,
-      role: 'DeliveryPartner',
-      isActive: false,
-      isMobileVerified: false,
-      onboardingStatus: 'ONBOARDING_IN_PROGRESS',
-      currentStep: 'PROFILE'
-    });
-  }
+  // Create new partner
+  const partner = await DeliveryPartner.create({
+    mobile,
+    fullName: fullName.trim(),
+    email: email ? email.toLowerCase().trim() : undefined,
+    city: city.trim(),
+    zone: zone.trim(),
+    vehicleType,
+    selectedAddress: selectedAddress ? selectedAddress.trim() : undefined,
+    latitude: latitude !== undefined ? Number(latitude) : undefined,
+    longitude: longitude !== undefined ? Number(longitude) : undefined,
+    role: 'DeliveryPartner',
+    isActive: false,
+    isMobileVerified: false,
+    onboardingStatus: 'ONBOARDING_IN_PROGRESS',
+    currentStep: selectedAddress ? 'DOCUMENTS' : 'LOCATION'
+  });
 
-  partner.fullName = fullName.trim();
-  if (email) partner.email = email.toLowerCase().trim();
-  partner.city = city.trim();
-  partner.zone = zone.trim();
-  partner.vehicleType = vehicleType;
-  if (selectedAddress) partner.selectedAddress = selectedAddress.trim();
-  if (latitude !== undefined) partner.latitude = Number(latitude);
-  if (longitude !== undefined) partner.longitude = Number(longitude);
-  partner.currentStep = selectedAddress ? 'DOCUMENTS' : 'LOCATION';
-  partner.onboardingStatus = 'ONBOARDING_IN_PROGRESS';
-
-  await partner.save();
+  const token = jwt.sign(
+    { user: { id: partner._id, role: 'DeliveryPartner' } },
+    secret,
+    { expiresIn: '7d' }
+  );
 
   return successResponse(res, {
-    message: 'Profile registered successfully',
+    message: 'Profile registered successfully. Please continue onboarding.',
     data: {
+      token,
+      isNewUser: true,
+      isProfileComplete: false,
+      action: 'START_ONBOARDING',
       partner: {
         id: partner._id,
         mobile: partner.mobile,
@@ -87,34 +184,33 @@ export const registerProfile = asyncHandler(async (req, res) => {
  * @access  Protected (Delivery Partner JWT)
  */
 export const updateProfile = asyncHandler(async (req, res) => {
-  const partnerId = req.deliveryPartner?.id || req.user?.id;
-  const { mobile, fullName, email, city, zone, vehicleType } = req.body;
+  const partnerId = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
+  const { fullName, email, cityandzone, vehicleType } = req.body;
+  const cityZoneMatch = cityandzone ? cityandzone.match(/^(.+?)\((.+?)\)$/) : null;
+  const city = cityZoneMatch ? cityZoneMatch[1].trim() : cityandzone?.trim();
+  const zone = cityZoneMatch ? cityZoneMatch[2].trim() : null;
 
-  if (!fullName || !city || !zone || !vehicleType) {
+  if (!fullName || !cityandzone || !vehicleType) {
     return errorResponse(res, {
       statusCode: 400,
-      message: 'fullName, city, zone, and vehicleType are required'
+      message: 'fullName, cityandzone, and vehicleType are required'
     });
   }
 
-  if (!['Bike', 'Scooter', 'Car'].includes(vehicleType)) {
+  const validVehicles = ['Bike', 'Scooter', 'EV Bike', 'Bicycle', 'Car'];
+  if (!validVehicles.includes(vehicleType)) {
     return errorResponse(res, {
       statusCode: 400,
-      message: 'Invalid vehicleType. Must be Bike, Scooter, or Car.'
+      message: `Invalid vehicleType. Must be one of: ${validVehicles.join(', ')}`
     });
   }
 
-  let partner;
-  if (partnerId) {
-    partner = await DeliveryPartner.findById(partnerId);
-  } else if (mobile) {
-    partner = await DeliveryPartner.findOne({ mobile });
-  }
+  const partner = await DeliveryPartner.findById(partnerId);
 
   if (!partner) {
     return errorResponse(res, {
       statusCode: 404,
-      message: 'Delivery partner account not found. Please provide a valid token or mobile number.'
+      message: 'Delivery partner account not found. Token invalid or expired.'
     });
   }
 
@@ -142,7 +238,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
  * @access  Protected (Delivery Partner JWT)
  */
 export const updateLocation = asyncHandler(async (req, res) => {
-  const partnerId = req.deliveryPartner?.id || req.user?.id;
+  const partnerId = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
   const { selectedAddress, latitude, longitude } = req.body;
 
   if (!selectedAddress) {
@@ -182,7 +278,7 @@ export const updateLocation = asyncHandler(async (req, res) => {
  * @access  Protected (Delivery Partner JWT)
  */
 export const uploadDocuments = asyncHandler(async (req, res) => {
-  const partnerId = req.deliveryPartner?.id || req.user?.id;
+  const partnerId = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
   const { aadhaarNumber, panNumber } = req.body;
 
   const partner = await DeliveryPartner.findById(partnerId);
@@ -234,7 +330,7 @@ export const uploadDocuments = asyncHandler(async (req, res) => {
  * @access  Protected (Delivery Partner JWT)
  */
 export const updateBank = asyncHandler(async (req, res) => {
-  const partnerId = req.deliveryPartner?.id || req.user?.id;
+  const partnerId = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
   const { accountHolderName, accountNumber, ifscCode } = req.body;
 
   if (!accountHolderName || !accountNumber || !ifscCode) {
@@ -313,7 +409,7 @@ export const getActiveFee = asyncHandler(async (req, res) => {
  * @access  Protected (Delivery Partner JWT)
  */
 export const createPaymentOrder = asyncHandler(async (req, res) => {
-  const partnerId = req.deliveryPartner?.id || req.user?.id;
+  const partnerId = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
 
   const partner = await DeliveryPartner.findById(partnerId);
   if (!partner) {
@@ -410,7 +506,7 @@ export const createPaymentOrder = asyncHandler(async (req, res) => {
  * @access  Protected (Delivery Partner JWT)
  */
 export const verifyPayment = asyncHandler(async (req, res) => {
-  const partnerId = req.deliveryPartner?.id || req.user?.id;
+  const partnerId = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
   if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
@@ -485,7 +581,7 @@ export const verifyPayment = asyncHandler(async (req, res) => {
  * @access  Protected (Delivery Partner JWT)
  */
 export const submitOnboarding = asyncHandler(async (req, res) => {
-  const partnerId = req.deliveryPartner?.id || req.user?.id;
+  const partnerId = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
 
   const partner = await DeliveryPartner.findById(partnerId);
   if (!partner) {
@@ -559,7 +655,7 @@ export const submitOnboarding = asyncHandler(async (req, res) => {
  * @access  Protected (Delivery Partner JWT)
  */
 export const resubmitOnboarding = asyncHandler(async (req, res) => {
-  const partnerId = req.deliveryPartner?.id || req.user?.id;
+  const partnerId = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
 
   const partner = await DeliveryPartner.findById(partnerId);
   if (!partner) {

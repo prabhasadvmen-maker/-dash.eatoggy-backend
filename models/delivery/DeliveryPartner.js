@@ -53,7 +53,7 @@ const deliveryPartnerSchema = new mongoose.Schema(
     },
     vehicleType: {
       type: String,
-      enum: ['Bike', 'Scooter', 'Car'],
+      enum: ['Bike', 'Scooter', 'EV Bike', 'Bicycle', 'Car'],
       default: 'Bike'
     },
     currentStep: {

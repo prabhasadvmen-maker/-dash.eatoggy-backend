@@ -146,12 +146,9 @@ export const login = asyncHandler(async (req, res) => {
  * @access  Protected (Delivery Partner JWT)
  */
 export const getMe = asyncHandler(async (req, res) => {
-  const partnerId = req.deliveryPartner?.id || req.user?.id;
+  const partnerId = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
   if (!partnerId) {
-    return errorResponse(res, {
-      statusCode: 401,
-      message: 'Unauthorized access'
-    });
+    return errorResponse(res, { statusCode: 401, message: 'Unauthorized access' });
   }
 
   const partner = await DeliveryPartner.findById(partnerId);
