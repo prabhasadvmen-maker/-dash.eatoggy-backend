@@ -88,7 +88,7 @@ export const registerProfile = asyncHandler(async (req, res) => {
  */
 export const updateProfile = asyncHandler(async (req, res) => {
   const partnerId = req.deliveryPartner?.id || req.user?.id;
-  const { fullName, email, city, zone, vehicleType } = req.body;
+  const { mobile, fullName, email, city, zone, vehicleType } = req.body;
 
   if (!fullName || !city || !zone || !vehicleType) {
     return errorResponse(res, {
@@ -104,11 +104,17 @@ export const updateProfile = asyncHandler(async (req, res) => {
     });
   }
 
-  const partner = await DeliveryPartner.findById(partnerId);
+  let partner;
+  if (partnerId) {
+    partner = await DeliveryPartner.findById(partnerId);
+  } else if (mobile) {
+    partner = await DeliveryPartner.findOne({ mobile });
+  }
+
   if (!partner) {
     return errorResponse(res, {
       statusCode: 404,
-      message: 'Delivery partner account not found'
+      message: 'Delivery partner account not found. Please provide a valid token or mobile number.'
     });
   }
 

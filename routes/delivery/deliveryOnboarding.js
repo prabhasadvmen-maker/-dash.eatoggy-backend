@@ -18,11 +18,10 @@ const router = express.Router();
 
 router.get('/fee', getActiveFee);
 router.post('/profile', registerProfile);  // New user registration - Public
+router.put('/profile', updateProfile);     // Existing user profile update - Public (requires mobile if no token)
 
 // Protected Onboarding Routes
 router.use(protectDeliveryPartner);
-
-router.put('/profile', updateProfile);     // Existing user profile update
 router.put('/location', updateLocation);
 
 router.post(
