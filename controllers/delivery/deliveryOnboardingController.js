@@ -599,12 +599,17 @@ export const submitOnboarding = asyncHandler(async (req, res) => {
     });
   }
 
-  // Validate location
+  // Validate location - fallback to city/zone if selectedAddress is missing
   if (!partner.selectedAddress) {
-    return errorResponse(res, {
-      statusCode: 400,
-      message: 'Operational location is required.'
-    });
+    if (partner.city && partner.zone) {
+      partner.selectedAddress = `${partner.zone}, ${partner.city}`;
+      await partner.save();
+    } else {
+      return errorResponse(res, {
+        statusCode: 400,
+        message: 'Operational location is required.'
+      });
+    }
   }
 
   // Validate documents

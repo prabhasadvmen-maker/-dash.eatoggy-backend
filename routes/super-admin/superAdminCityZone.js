@@ -13,12 +13,12 @@ import {
 
 const router = express.Router();
 
-// Public route - for delivery partner / restaurant dropdowns
+// Public routes
+router.get('/', getAllCities);
 router.get('/active', getActiveCities);
 
 // Protected routes
 router.use(protectSuperAdmin);
-router.get('/', getAllCities);
 router.get('/autocomplete-zone', getZoneAutocomplete);
 router.post('/', createCity);
 router.put('/:id', updateCity);
