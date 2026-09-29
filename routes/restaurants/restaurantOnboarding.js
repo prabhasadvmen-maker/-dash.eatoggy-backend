@@ -191,9 +191,9 @@ router.post('/kitchen-hygiene', (req, res, next) => {
   });
 }));
 
-// @route   POST /api/restaurant-onboarding/business-docs
+// @route   POST or PUT /api/restaurant-onboarding/business-docs
 // @desc    Upload Business Documents
-router.post('/business-docs', docUpload, asyncHandler(async (req, res) => {
+const businessDocsHandler = asyncHandler(async (req, res) => {
   const restaurant = await Restaurant.findById(req.restaurant.id);
   if (!restaurant) {
     return errorResponse(res, { statusCode: 404, message: 'Restaurant not found' });
@@ -217,7 +217,10 @@ router.post('/business-docs', docUpload, asyncHandler(async (req, res) => {
     message: 'Business documents saved successfully',
     data: { currentStep: restaurant.currentStep }
   });
-}));
+});
+
+router.post('/business-docs', docUpload, businessDocsHandler);
+router.put('/business-docs', docUpload, businessDocsHandler);
 
 const idBankUpload = upload.fields([
   { name: 'aadhaarFront', maxCount: 1 },
