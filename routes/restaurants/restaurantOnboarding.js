@@ -88,8 +88,8 @@ router.put('/business-details', asyncHandler(async (req, res) => {
 
   return successResponse(res, {
     message: 'Business details saved successfully',
-    token,
     data: {
+      token,
       currentStep: restaurant.currentStep,
       onboardingStatus: restaurant.onboardingStatus,
       restaurantId: restaurant._id
