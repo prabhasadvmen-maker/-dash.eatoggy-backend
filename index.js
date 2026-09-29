@@ -42,6 +42,7 @@ import superAdminReviewsRouter from './routes/super-admin/superAdminReviews.js';
 import superAdminSupportRouter from './routes/super-admin/superAdminSupport.js';
 import superAdminRefundsRouter from './routes/super-admin/superAdminRefunds.js';
 import superAdminCouponsRouter from './routes/super-admin/superAdminCoupon.js';
+import superAdminCityZoneRouter from './routes/super-admin/superAdminCityZone.js';
 import { startSubscriptionSchedulerJob, stopSubscriptionSchedulerJob } from './jobs/subscriptionSchedulerJob.js';
 import { protect } from './middleware/authMiddleware.js';
 import requestIdMiddleware from './middleware/requestId.js';
@@ -123,6 +124,7 @@ app.use('/api/super-admin', superAdminReviewsRouter);
 app.use('/api/super-admin', superAdminSupportRouter);
 app.use('/api/super-admin', superAdminRefundsRouter);
 app.use('/api/super-admin/coupons', superAdminCouponsRouter);
+app.use('/api/super-admin/cities', superAdminCityZoneRouter);
 app.use('/api/super-admin', superAdminControlRoutes);
 
 app.get('/api/protected', protect, (req, res) => {
