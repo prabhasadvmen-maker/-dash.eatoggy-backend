@@ -43,6 +43,7 @@ import superAdminSupportRouter from './routes/super-admin/superAdminSupport.js';
 import superAdminRefundsRouter from './routes/super-admin/superAdminRefunds.js';
 import superAdminCouponsRouter from './routes/super-admin/superAdminCoupon.js';
 import superAdminCityZoneRouter from './routes/super-admin/superAdminCityZone.js';
+import { getAllCities } from './controllers/super-admin/superAdminCityZoneController.js';
 import { startSubscriptionSchedulerJob, stopSubscriptionSchedulerJob } from './jobs/subscriptionSchedulerJob.js';
 import { protect } from './middleware/authMiddleware.js';
 import requestIdMiddleware from './middleware/requestId.js';
@@ -85,6 +86,9 @@ app.use(express.json({ limit: '1mb' }));
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
+
+// Public - no auth required
+app.get('/api/cities', getAllCities);
 
 // API Routes
 app.use('/api/auth', authRoutes);

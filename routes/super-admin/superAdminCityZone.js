@@ -7,8 +7,7 @@ import {
   updateCity,
   deleteCity,
   addZone,
-  deleteZone,
-  getZoneAutocomplete
+  deleteZone
 } from '../../controllers/super-admin/superAdminCityZoneController.js';
 
 const router = express.Router();
@@ -19,7 +18,6 @@ router.get('/active', getActiveCities);
 
 // Protected routes
 router.use(protectSuperAdmin);
-router.get('/autocomplete-zone', getZoneAutocomplete);
 router.post('/', createCity);
 router.put('/:id', updateCity);
 router.delete('/:id', deleteCity);
