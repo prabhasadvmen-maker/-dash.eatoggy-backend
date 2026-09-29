@@ -248,9 +248,9 @@ const idBankUpload = upload.fields([
   { name: 'aadhaarBack', maxCount: 1 }
 ]);
 
-// @route   PUT /api/restaurant-onboarding/identity-bank
+// @route   PUT or POST /api/restaurant-onboarding/identity-bank
 // @desc    Upload Identity Documents and Save Bank Details
-router.put('/identity-bank', idBankUpload, asyncHandler(async (req, res) => {
+const identityBankHandler = asyncHandler(async (req, res) => {
   const { accountHolderName, accountNumber, ifscCode, bankName } = req.body;
 
   if (!accountHolderName || !accountNumber || !ifscCode || !bankName) {
@@ -297,7 +297,10 @@ router.put('/identity-bank', idBankUpload, asyncHandler(async (req, res) => {
       bankDetails: restaurant.bankDetails
     }
   });
-}));
+});
+
+router.put('/identity-bank', idBankUpload, identityBankHandler);
+router.post('/identity-bank', idBankUpload, identityBankHandler);
 
 // @route   GET /api/restaurant-onboarding/registration-fee
 // @desc    Get current DB-configured registration fee
