@@ -136,6 +136,7 @@ app.use('/api', supportTicketRoutes);
 app.use('/api', superAdminReportRoutes);
 app.use('/api', analyticsRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/customer/categories', categoryRoutes);
 app.use('/api/offers', offerRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/customer/notifications', notificationRoutes);
