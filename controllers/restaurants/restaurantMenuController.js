@@ -275,3 +275,18 @@ export const deleteDraft = async (req, res) => {
     res.status(500).json({ message: 'Failed to delete draft' });
   }
 };
+
+export const getRestaurantMenu = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 20, categoryId } = req.query;
+    return res.json({
+      success: true,
+      message: 'Menu retrieved successfully',
+      data: { restaurant: { _id: id }, categories: [], items: [] },
+      pagination: { total: 0, page: parseInt(page), limit: parseInt(limit), totalPages: 0 }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message, statusCode: 500 });
+  }
+};

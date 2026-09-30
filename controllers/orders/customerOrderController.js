@@ -17,12 +17,15 @@ export const getCustomerOrders = async (req, res, next) => {
       return errorResponse(res, { statusCode: 401, message: 'Unauthorized customer access' });
     }
 
-    const orders = await orderService.getCustomerOrders(customerId);
+    const { status, page = 1, limit = 20 } = req.query;
+
+    const result = await orderService.getCustomerOrders(customerId, { status, page, limit });
 
     return successResponse(res, {
       statusCode: 200,
-      message: 'Customer orders retrieved successfully',
-      data: orders
+      message: 'Orders retrieved successfully',
+      data: result.orders,
+      pagination: result.pagination
     });
   } catch (err) {
     if (err.statusCode) {

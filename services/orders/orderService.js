@@ -154,11 +154,43 @@ export const createOrderFromPayment = async (paymentId) => {
 /**
  * Get Customer Orders History
  */
-export const getCustomerOrders = async (customerId) => {
-  return await Order.find({ customerId })
-    .sort({ createdAt: -1 })
-    .populate('restaurantId', 'restaurantName city rating documents.restaurantImage cuisine')
-    .populate('customerId', 'fullName mobile email');
+export const getCustomerOrders = async (customerId, { status, page = 1, limit = 20 } = {}) => {
+  const query = { customerId };
+  
+  if (status) {
+    if (status === 'active') {
+      query.orderStatus = { $in: ['PLACED', 'ACCEPTED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY'] };
+    } else if (status === 'delivered') {
+      query.orderStatus = 'DELIVERED';
+    } else if (status === 'cancelled') {
+      query.orderStatus = { $in: ['CANCELLED', 'REJECTED'] };
+    } else {
+      query.orderStatus = status; // Exact match if provided something else
+    }
+  }
+
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const limitVal = parseInt(limit);
+
+  const [orders, total] = await Promise.all([
+    Order.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitVal)
+      .populate('restaurantId', 'restaurantName city rating documents.restaurantImage cuisine')
+      .populate('customerId', 'fullName mobile email'),
+    Order.countDocuments(query)
+  ]);
+
+  return {
+    orders,
+    pagination: {
+      total,
+      page: parseInt(page),
+      limit: limitVal,
+      totalPages: Math.ceil(total / limitVal)
+    }
+  };
 };
 
 /**

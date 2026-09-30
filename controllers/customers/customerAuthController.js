@@ -500,6 +500,80 @@ export const logout = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Refresh Customer JWT Token
+ * @route   POST /api/customer-auth/refresh-token
+ * @access  Public
+ */
+export const refreshToken = asyncHandler(async (req, res) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return errorResponse(res, { statusCode: 400, message: 'Refresh token is required' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const customer = await Customer.findById(decoded.id);
+    if (!customer) {
+      return errorResponse(res, { statusCode: 401, message: 'Invalid refresh token' });
+    }
+
+    const token = jwt.sign({ id: customer._id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRE || '30d'
+    });
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: 'Token refreshed successfully',
+      data: { token, expiresIn: process.env.JWT_EXPIRE || '30d' }
+    });
+  } catch (error) {
+    return errorResponse(res, { statusCode: 401, message: 'Invalid or expired refresh token' });
+  }
+});
+
+/**
+ * @desc    Send Secondary OTP
+ * @route   POST /api/customer-auth/secondary-otp/send
+ * @access  Private (Customer)
+ */
+export const sendSecondaryOtp = asyncHandler(async (req, res) => {
+  const { mobile } = req.body;
+  if (!mobile) {
+    return errorResponse(res, { statusCode: 400, message: 'Mobile number is required' });
+  }
+  
+  await sendOTP(mobile, 'customer_secondary');
+
+  return successResponse(res, {
+    statusCode: 200,
+    message: 'Secondary OTP sent successfully'
+  });
+});
+
+/**
+ * @desc    Verify Secondary OTP
+ * @route   POST /api/customer-auth/secondary-otp/verify
+ * @access  Private (Customer)
+ */
+export const verifySecondaryOtp = asyncHandler(async (req, res) => {
+  const { mobile, otp } = req.body;
+  if (!mobile || !otp) {
+    return errorResponse(res, { statusCode: 400, message: 'Mobile number and OTP are required' });
+  }
+
+  const isValid = await verifyOTP(mobile, otp, 'customer_secondary');
+  if (!isValid) {
+    return errorResponse(res, { statusCode: 400, message: 'Invalid or expired OTP' });
+  }
+
+  return successResponse(res, {
+    statusCode: 200,
+    message: 'Secondary OTP verified successfully',
+    data: { verified: true }
+  });
+});
+
 export default {
   signup,
   sendOtp,
@@ -510,5 +584,8 @@ export default {
   saveLocation,
   updateProfile,
   deleteAccount,
-  logout
+  logout,
+  refreshToken,
+  sendSecondaryOtp,
+  verifySecondaryOtp
 };

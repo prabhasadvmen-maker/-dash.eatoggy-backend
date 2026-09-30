@@ -36,9 +36,10 @@ router.get('/support/tickets/delivery/my', protectDeliveryPartner, getDeliveryTi
 
 // Get single ticket by ID (ownership IDOR protected, internal notes filtered for non-admin)
 router.get('/support/tickets/:id', protect, getSingleTicket);
+router.get('/support/tickets/:id/messages', protect, getSingleTicket);
 
 // Add message to ticket thread (user reply)
-router.post('/support/tickets/:id/messages', protect, postTicketMessage);
+router.post('/support/tickets/:id/reply', protect, postTicketMessage);
 
 // -------------------- SUPERADMIN HELPDESK ENDPOINTS --------------------
 // Global paginated list & search

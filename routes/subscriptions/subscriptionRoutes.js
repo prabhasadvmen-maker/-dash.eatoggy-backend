@@ -20,8 +20,11 @@ router.post('/customers/subscriptions/verify-payment', protectCustomer, customer
 router.get('/customers/subscriptions', protectCustomer, customerCtrl.getMySubscriptions);
 router.get('/customers/subscriptions/:id', protectCustomer, customerCtrl.getSubscriptionDetail);
 router.patch('/customers/subscriptions/:id/pause', protectCustomer, customerCtrl.pauseSubscription);
+router.post('/customers/subscriptions/:id/pause', protectCustomer, customerCtrl.pauseSubscription);
 router.patch('/customers/subscriptions/:id/resume', protectCustomer, customerCtrl.resumeSubscription);
+router.post('/customers/subscriptions/:id/resume', protectCustomer, customerCtrl.resumeSubscription);
 router.patch('/customers/subscriptions/:id/cancel', protectCustomer, customerCtrl.cancelSubscription);
+router.post('/customers/subscriptions/:id/cancel', protectCustomer, customerCtrl.cancelSubscription);
 router.post('/customers/subscriptions/:id/occurrences/:occId/skip', protectCustomer, customerCtrl.skipOccurrence);
 
 // ==========================================

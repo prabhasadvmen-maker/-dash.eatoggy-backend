@@ -9,7 +9,10 @@ import {
   saveLocation,
   updateProfile,
   deleteAccount,
-  logout
+  logout,
+  refreshToken,
+  sendSecondaryOtp,
+  verifySecondaryOtp
 } from '../../controllers/customers/customerAuthController.js';
 import { protectCustomer } from '../../middleware/authMiddleware.js';
 
@@ -22,6 +25,11 @@ router.post('/signup', signup);
 router.post('/send-otp', otpRequestLimiter, sendOtp);
 router.post('/verify-otp', otpVerifyLimiter, verifyOtp);
 router.post('/login', login);
+router.post('/refresh-token', refreshToken);
+
+// Protected routes (Customer JWT required)
+router.post('/secondary-otp/send', protectCustomer, otpRequestLimiter, sendSecondaryOtp);
+router.post('/secondary-otp/verify', protectCustomer, otpVerifyLimiter, verifySecondaryOtp);
 
 // Protected routes (Customer JWT required)
 router.get('/me', protectCustomer, getMe);

@@ -33,3 +33,14 @@ export const registerFCMToken = asyncHandler(async (req, res) => {
     message: 'Device token registered successfully'
   });
 });
+
+export const getNotifications = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 20, read } = req.query;
+  return successResponse(res, {
+    statusCode: 200,
+    message: 'Notifications retrieved successfully',
+    data: [],
+    pagination: { total: 0, page: parseInt(page), limit: parseInt(limit), totalPages: 0 }
+  });
+});
+
