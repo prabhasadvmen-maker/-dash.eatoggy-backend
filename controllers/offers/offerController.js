@@ -55,45 +55,38 @@ export const applyCoupon = asyncHandler(async (req, res) => {
     return errorResponse(res, { statusCode: 400, message: 'Coupon usage limit exceeded' });
   }
 
-  // Check the user's cart in the DB
   const customerId = req.customer?.id || req.user?.id;
   const Cart = (await import('../../models/cart/Cart.js')).default;
   const cart = await Cart.findOne({ customerId });
 
-  if (!cart) {
-    return errorResponse(res, { statusCode: 404, message: 'Cart not found' });
-  }
+  const subtotal = cart ? cart.pricing.subtotal : 0;
 
-  if (cart.pricing.subtotal < coupon.minOrderValue) {
-    return errorResponse(res, { 
-      statusCode: 400, 
-      message: `Minimum order value of ₹${coupon.minOrderValue} required for this coupon` 
+  if (coupon.minOrderValue && subtotal < coupon.minOrderValue) {
+    return errorResponse(res, {
+      statusCode: 400,
+      message: `Minimum order value of ₹${coupon.minOrderValue} required for this coupon`
     });
   }
 
   let calculatedDiscount = 0;
   if (coupon.discountType === 'FLAT') {
-    calculatedDiscount = coupon.discountAmount;
+    calculatedDiscount = coupon.discountAmount || 0;
   } else if (coupon.discountType === 'PERCENTAGE') {
-    calculatedDiscount = (cart.pricing.subtotal * coupon.discountPercent) / 100;
+    calculatedDiscount = (subtotal * (coupon.discountPercent || 0)) / 100;
     if (coupon.maxDiscount && calculatedDiscount > coupon.maxDiscount) {
       calculatedDiscount = coupon.maxDiscount;
     }
   }
 
-  cart.couponCode = coupon.code;
-  // This assumes discount is a field in cart, we can just reduce the grandTotal directly
-  // or update a specific field. We'll deduct it from grandTotal and add a discount field
-  cart.discount = calculatedDiscount;
-  
-  // Recalculate grand total
-  cart.pricing.grandTotal = cart.pricing.subtotal + cart.pricing.packagingCharge 
-    + cart.pricing.platformFee + cart.pricing.deliveryFee + cart.pricing.gst 
-    - calculatedDiscount;
-
-  if (cart.pricing.grandTotal < 0) cart.pricing.grandTotal = 0;
-
-  await cart.save();
+  if (cart) {
+    cart.couponCode = coupon.code;
+    cart.discount = calculatedDiscount;
+    cart.pricing.grandTotal = cart.pricing.subtotal + cart.pricing.packagingCharge
+      + cart.pricing.platformFee + cart.pricing.deliveryFee + cart.pricing.gst
+      - calculatedDiscount;
+    if (cart.pricing.grandTotal < 0) cart.pricing.grandTotal = 0;
+    await cart.save();
+  }
 
   return successResponse(res, {
     message: `Coupon '${couponCode}' applied successfully`,
@@ -101,9 +94,11 @@ export const applyCoupon = asyncHandler(async (req, res) => {
       couponCode: coupon.code,
       couponTitle: coupon.title,
       discountType: coupon.discountType,
+      discountPercent: coupon.discountPercent,
       discountAmount: calculatedDiscount,
-      newGrandTotal: cart.pricing.grandTotal,
-      cart
+      minOrderValue: coupon.minOrderValue,
+      maxDiscount: coupon.maxDiscount,
+      newGrandTotal: cart ? cart.pricing.grandTotal : null
     }
   });
 });
