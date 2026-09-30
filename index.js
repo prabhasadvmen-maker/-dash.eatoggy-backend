@@ -120,6 +120,7 @@ app.use('/api/restaurant-onboarding', restaurantOnboardingRoutes);
 app.use('/api/restaurants/menu', restaurantMenuRoutes);
 app.use('/api/restaurants', customerRestaurantRoutes);
 app.use('/api/customer-auth', customerAuthRoutes);
+app.use('/api/customer/auth', customerAuthRoutes);
 app.use('/api/customer', customerDashboardRoutes);
 app.use('/api/customers/discovery', customerDiscoveryRoutes);
 app.use('/api/customers/addresses', addressRoutes);

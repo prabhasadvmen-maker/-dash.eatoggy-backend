@@ -23,7 +23,9 @@ const router = express.Router();
 // Public routes
 router.post('/signup', signup);
 router.post('/send-otp', otpRequestLimiter, sendOtp);
+router.post('/otp-login/request', otpRequestLimiter, sendOtp);
 router.post('/verify-otp', otpVerifyLimiter, verifyOtp);
+router.post('/otp-login/verify', otpVerifyLimiter, verifyOtp);
 router.post('/login', login);
 router.post('/refresh-token', refreshToken);
 
