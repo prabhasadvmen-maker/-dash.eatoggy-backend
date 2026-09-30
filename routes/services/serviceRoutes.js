@@ -3,9 +3,9 @@ import { getServices, getFeaturedServices, getServiceDetails, getServicePackages
 
 const router = express.Router();
 
-router.get('/', getServices);
-router.get('/customer/services/featured', getFeaturedServices);
-router.get('/services/details/:id', getServiceDetails);
-router.get('/packages/service/:id', getServicePackages);
+router.get('/services', getServices);
+router.get('/services/featured', getFeaturedServices);
+router.get('/services/:id', getServiceDetails);
+router.get('/services/:id/packages', getServicePackages);
 
 export default router;
