@@ -22,6 +22,60 @@ const validateCategorySubcategory = async (categoryId, subcategoryId) => {
   return { valid: true };
 };
 
+// @desc    Create new food category for restaurant
+export const createCategory = async (req, res) => {
+  try {
+    const { name, emoji, displayOrder, isActive } = req.body;
+    const restaurantId = req.restaurant?.id || req.restaurant?._id || req.user?.id || req.user?._id;
+
+    if (!restaurantId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized restaurant access' });
+    }
+
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ success: false, message: 'Category name is required' });
+    }
+
+    if (name.length > 50) {
+      return res.status(400).json({ success: false, message: 'Category name cannot exceed 50 characters' });
+    }
+
+    const existingCategory = await Category.findOne({ name: name.trim(), restaurantId });
+    if (existingCategory) {
+      return res.status(400).json({ success: false, message: 'Category name already exists' });
+    }
+
+    const newCategory = new Category({
+      name: name.trim(),
+      emoji: emoji || '',
+      displayOrder: displayOrder !== undefined ? displayOrder : 0,
+      isActive: isActive !== undefined ? isActive : true,
+      restaurantId,
+      createdBy: restaurantId,
+      createdByType: 'Restaurant',
+      updatedBy: restaurantId,
+      updatedByType: 'Restaurant'
+    });
+
+    await newCategory.save();
+
+    const result = newCategory.toObject();
+    result.itemCount = 0;
+
+    res.status(201).json({
+      success: true,
+      message: 'Category created successfully',
+      data: result
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: 'Category name already exists' });
+    }
+    console.error('Error creating category:', error);
+    res.status(500).json({ success: false, message: 'Failed to create category' });
+  }
+};
+
 // @desc    Create new Menu Item (Draft or Pending Review)
 export const createMenuItem = async (req, res) => {
   try {

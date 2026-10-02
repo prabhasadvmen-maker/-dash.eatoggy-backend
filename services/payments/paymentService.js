@@ -181,3 +181,15 @@ export const verifyOrderPayment = async (customerId, { razorpay_order_id, razorp
     order
   };
 };
+
+/**
+ * Process a refund for a cancelled/rejected order
+ */
+export const processRefund = async (orderId, amount, reason) => {
+  // Mocking the refund process
+  console.log(`Processing refund for order ${orderId} amount ${amount} reason: ${reason}`);
+  return {
+    refundStatus: 'PROCESSING',
+    refundAmount: amount
+  };
+};

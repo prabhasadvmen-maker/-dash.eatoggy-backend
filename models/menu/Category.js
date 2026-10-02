@@ -4,14 +4,22 @@ const CategorySchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'Category name is required'],
-    unique: true,
     trim: true,
     maxlength: [100, 'Name cannot be more than 100 characters']
+  },
+  restaurantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Restaurant',
+    default: null
   },
   description: {
     type: String,
     trim: true,
     maxlength: [500, 'Description cannot be more than 500 characters'],
+    default: ''
+  },
+  emoji: {
+    type: String,
     default: ''
   },
   isActive: {
@@ -22,14 +30,30 @@ const CategorySchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  displayOrder: {
+    type: Number,
+    default: 0
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Admin'
+    refPath: 'createdByType'
+  },
+  createdByType: {
+    type: String,
+    enum: ['Admin', 'Restaurant'],
+    default: 'Admin'
   },
   updatedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Admin'
+    refPath: 'updatedByType'
+  },
+  updatedByType: {
+    type: String,
+    enum: ['Admin', 'Restaurant'],
+    default: 'Admin'
   }
 }, { timestamps: true });
+
+CategorySchema.index({ name: 1, restaurantId: 1 }, { unique: true });
 
 export default mongoose.model('Category', CategorySchema);

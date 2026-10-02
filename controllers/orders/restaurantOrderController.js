@@ -61,6 +61,96 @@ export const getRestaurantOrderById = async (req, res, next) => {
   }
 };
 
+import { processRefund } from '../../services/payments/paymentService.js';
+
+/**
+ * @desc    Accept Order
+ * @route   POST /api/restaurants/orders/:orderId/accept
+ * @access  Private (Restaurant Partner)
+ */
+export const acceptOrder = async (req, res, next) => {
+  try {
+    const restaurantId = getRestaurantId(req);
+    if (!restaurantId) {
+      return errorResponse(res, { statusCode: 401, message: 'Unauthorized restaurant access' });
+    }
+
+    const { orderId } = req.params;
+    const { estimatedPrepTime } = req.body;
+
+    const updatedOrder = await orderService.updateRestaurantOrderStatus(restaurantId, orderId, 'ACCEPTED', '', `Estimated prep time: ${estimatedPrepTime} mins`);
+    
+    // In a real app, send a notification to the customer here
+    // notificationService.sendNotification(updatedOrder.customerId, 'Order Accepted', ...);
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: 'Order accepted successfully',
+      data: {
+        orderId: updatedOrder._id,
+        orderStatus: updatedOrder.orderStatus,
+        acceptedAt: updatedOrder.acceptedAt,
+        estimatedPrepTime: estimatedPrepTime || 0
+      }
+    });
+  } catch (err) {
+    if (err.statusCode) {
+      return errorResponse(res, { statusCode: err.statusCode, message: err.message });
+    }
+    next(err);
+  }
+};
+
+/**
+ * @desc    Reject Order
+ * @route   POST /api/restaurants/orders/:orderId/reject
+ * @access  Private (Restaurant Partner)
+ */
+export const rejectOrder = async (req, res, next) => {
+  try {
+    const restaurantId = getRestaurantId(req);
+    if (!restaurantId) {
+      return errorResponse(res, { statusCode: 401, message: 'Unauthorized restaurant access' });
+    }
+
+    const { orderId } = req.params;
+    const { reasonCode, reasonNote } = req.body;
+    const reason = reasonNote || reasonCode;
+
+    if (!reason) {
+      return errorResponse(res, { statusCode: 400, message: 'Rejection reason is required' });
+    }
+
+    const updatedOrder = await orderService.updateRestaurantOrderStatus(restaurantId, orderId, 'CANCELLED', reason, '');
+
+    let refundStatus = 'NOT_APPLICABLE';
+    let refundAmount = 0;
+
+    if (updatedOrder.paymentStatus === 'PAID') {
+      refundAmount = updatedOrder.pricing?.grandTotal || 0;
+      const refundResult = await processRefund(orderId, refundAmount, reason);
+      refundStatus = refundResult.refundStatus;
+    }
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: 'Order rejected and refund initiated',
+      data: {
+        orderId: updatedOrder._id,
+        orderStatus: updatedOrder.orderStatus,
+        rejectionReason: updatedOrder.rejectionReason,
+        refundStatus,
+        refundAmount
+      }
+    });
+  } catch (err) {
+    if (err.statusCode) {
+      return errorResponse(res, { statusCode: err.statusCode, message: err.message });
+    }
+    next(err);
+  }
+};
+
 /**
  * @desc    Update Order Status with State Machine Validation
  * @route   PATCH /api/restaurant-admin/orders/:id/status

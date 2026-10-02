@@ -9,6 +9,7 @@ import {
   submitForVerification,
   toggleAvailability,
   deleteDraft,
+  createCategory,
 } from '../../controllers/restaurants/restaurantMenuController.js';
 import { getCategories, getSubcategories } from '../../controllers/super-admin/superAdminCategoryController.js';
 
@@ -31,6 +32,7 @@ const imageUpload = upload.single('image');
 
 router.post('/', imageUpload, createMenuItem);
 router.get('/', getMenuItems);
+router.post('/categories', createCategory);
 router.get('/categories', getCategories);
 router.get('/subcategories', getSubcategories);
 router.get('/:id', getMenuItemById);

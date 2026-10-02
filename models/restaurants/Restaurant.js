@@ -82,7 +82,12 @@ const RestaurantSchema = new mongoose.Schema({
   // Security
   isPhoneVerified: { type: Boolean, default: false },
   paymentId: { type: String, default: null },
-  lastLogin: { type: Date }
+  lastLogin: { type: Date },
+
+  // Device & Push Notifications
+  fcmToken: { type: String },
+  devicePlatform: { type: String, enum: ['ANDROID', 'IOS', 'WEB'] },
+  appVersion: { type: String }
 
 }, { timestamps: true });
 

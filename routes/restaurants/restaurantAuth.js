@@ -32,6 +32,29 @@ router.post('/send-otp', otpRequestLimiter, async (req, res) => {
   }
 });
 
+// @route   POST /api/restaurant-auth/resend-otp
+// @desc    Resend OTP to mobile
+router.post('/resend-otp', otpRequestLimiter, async (req, res) => {
+  try {
+    const { mobile } = req.body;
+    if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
+      return res.status(400).json({ success: false, message: 'Valid 10-digit Indian mobile number is required' });
+    }
+    const result = await sendOTP(mobile);
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: 'OTP resent successfully to your mobile number'
+      });
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error('Resend OTP error:', error);
+    res.status(500).json({ success: false, message: 'Server error during resend OTP' });
+  }
+});
+
 // @route   POST /api/restaurant-auth/verify-otp
 // @desc    Verify OTP for Restaurant Partner, provision/authenticate & issue JWT
 router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
@@ -55,7 +78,15 @@ router.post('/verify-otp', otpVerifyLimiter, async (req, res) => {
         isPhoneVerified: true,
         onboardingStatus: 'ONBOARDING_IN_PROGRESS',
         currentStep: 'WELCOME',
-        status: 'PENDING'
+        status: 'PENDING',
+        kitchenHygieneProof: {
+          mainPrepStation: {},
+          additionalAreas: {
+            storageAndFridge: {},
+            dishwashingArea: {}
+          },
+          completed: false
+        }
       });
     } else {
       restaurant.isPhoneVerified = true;
