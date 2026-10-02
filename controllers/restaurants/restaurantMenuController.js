@@ -181,6 +181,9 @@ export const getMenuItemById = async (req, res) => {
 // @desc    Update a menu item
 export const updateMenuItem = async (req, res) => {
   try {
+    if (!req.body) {
+      return res.status(400).json({ message: 'Request body is missing. Use multipart/form-data or application/json.' });
+    }
     const { categoryId, subcategoryId, name, description, price, foodType, preparationTime, availability, isDraft } = req.body;
 
     const item = await MenuItem.findOne({ _id: req.params.id, restaurantId: req.restaurant.id });
