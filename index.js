@@ -67,7 +67,7 @@ import aiChatRoutes from './routes/ai-chat/aiChatRoutes.js';
 import serviceRoutes from './routes/services/serviceRoutes.js';
 import bookingRoutes from './routes/bookings/bookingRoutes.js';
 import translationRoutes from './routes/translation/translationRoutes.js';
-import { getAllCities } from './controllers/super-admin/superAdminCityZoneController.js';
+import { getAllCities, getActiveCities } from './controllers/super-admin/superAdminCityZoneController.js';
 import { startSubscriptionSchedulerJob, stopSubscriptionSchedulerJob } from './jobs/subscriptionSchedulerJob.js';
 import { protect } from './middleware/authMiddleware.js';
 import requestIdMiddleware from './middleware/requestId.js';
@@ -114,6 +114,7 @@ app.get('/health', (req, res) => {
 
 // Public - no auth required
 app.get('/api/cities', getAllCities);
+app.get('/api/super-admin/cities/active', getActiveCities);
 
 // API Routes
 app.use('/api/auth', authRoutes);

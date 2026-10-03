@@ -185,15 +185,17 @@ export const registerProfile = asyncHandler(async (req, res) => {
  */
 export const updateProfile = asyncHandler(async (req, res) => {
   const partnerId = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
-  const { fullName, email, cityandzone, vehicleType } = req.body;
-  const cityZoneMatch = cityandzone ? cityandzone.match(/^(.+?)\((.+?)\)$/) : null;
-  const city = cityZoneMatch ? cityZoneMatch[1].trim() : cityandzone?.trim();
-  const zone = cityZoneMatch ? cityZoneMatch[2].trim() : null;
+  const { fullName, email, cityandzone, city: cityDirect, zone: zoneDirect, vehicleType } = req.body;
 
-  if (!fullName || !cityandzone || !vehicleType) {
+  // Support both cityandzone combined field and separate city/zone fields
+  const cityZoneMatch = cityandzone ? cityandzone.match(/^(.+?)\((.+?)\)$/) : null;
+  const city = cityZoneMatch ? cityZoneMatch[1].trim() : (cityandzone?.trim() || cityDirect?.trim());
+  const zone = cityZoneMatch ? cityZoneMatch[2].trim() : (zoneDirect?.trim() || cityDirect?.trim());
+
+  if (!fullName || (!cityandzone && !cityDirect) || !vehicleType) {
     return errorResponse(res, {
       statusCode: 400,
-      message: 'fullName, cityandzone, and vehicleType are required'
+      message: 'fullName, city, and vehicleType are required'
     });
   }
 
