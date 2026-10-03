@@ -1,0 +1,57 @@
+
+🚀 DELIVERY PARTNER API TESTS
+
+============================================================
+✅ GET Dashboard - 200
+✅ Update Partner Status - 200
+✅ Get Today Orders - 200
+✅ Get Order Details - 200
+❌ Confirm Pickup - 422
+✅ Verify OTP - 200
+❌ Complete Delivery - 422
+❌ Report Issue - 400
+✅ Get Order History - 200
+✅ Get Navigation Data - 200
+✅ Update Partner Location - 200
+✅ Get Zone Data - 200
+✅ Get Zone Subscribers - 200
+✅ Get Earnings - 200
+❌ Withdraw Earnings - 400
+✅ Get Notifications - 200
+✅ Mark Notification Read - 200
+✅ Mark All Notifications Read - 200
+✅ Get FAQs - 200
+✅ Submit Support Ticket - 200
+✅ Update Partner Profile - 200
+
+============================================================
+
+📊 TEST SUMMARY
+
+Total Tests: 21
+✅ Passed: 17
+❌ Failed: 4
+Success Rate: 80.95%
+
+============================================================
+
+📄 Results saved to: api_test_results.json
+
+⚠️  FAILED TESTS:
+
+❌ Confirm Pickup
+   POST /orders/6ac0fe64ea99a12ac3a16fa9/confirm-pickup
+   Error: Cannot confirm pickup from status DELIVERED
+
+❌ Complete Delivery
+   POST /orders/6ac0fe64ea99a12ac3a16fa9/complete
+   Error: Delivery is already completed
+
+❌ Report Issue
+   POST /orders/6ac0fe64ea99a12ac3a16fa9/report-issue
+   Error: Validation Error
+
+❌ Withdraw Earnings
+   POST /earnings/withdraw
+   Error: Validation Error
+

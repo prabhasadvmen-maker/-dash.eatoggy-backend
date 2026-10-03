@@ -73,6 +73,20 @@ const deliverySchema = new mongoose.Schema(
       type: String,
       required: true
     },
+    isOtpVerified: {
+      type: Boolean,
+      default: false
+    },
+    timeSlot: {
+      type: String,
+      default: 'ASAP',
+      enum: ['ASAP', 'MORNING', 'AFTERNOON', 'EVENING', 'NIGHT']
+    },
+    partnerLocation: {
+      latitude: { type: Number, default: null },
+      longitude: { type: Number, default: null },
+      updatedAt: { type: Date, default: null }
+    },
     restaurantSnapshot: {
       type: snapshotRestaurantSchema,
       required: true

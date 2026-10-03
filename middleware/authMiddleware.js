@@ -12,7 +12,11 @@ export const protect = (req, res, next) => {
   // Verify token
   try {
     const secret = process.env.JWT_SECRET;
-    if (!secret) return res.status(500).json({ message: 'Server configuration error' });
+    if (!secret) {
+      console.error('JWT_SECRET not found in environment');
+      return res.status(500).json({ message: 'Server configuration error' });
+    }
+    
     const decoded = jwt.verify(token, secret);
 
     if (decoded.admin) {
@@ -42,6 +46,9 @@ export const protect = (req, res, next) => {
 
     next();
   } catch (err) {
+    console.error('JWT Verification Error:', err.message);
+    console.error('Token:', token.substring(0, 50) + '...');
+    console.error('Secret:', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
     res.status(401).json({ message: 'Token is not valid' });
   }
 };

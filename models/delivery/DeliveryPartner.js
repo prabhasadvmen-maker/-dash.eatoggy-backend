@@ -119,6 +119,34 @@ const deliveryPartnerSchema = new mongoose.Schema(
     lastLogin: {
       type: Date,
       default: null
+    },
+    walletBalance: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    totalEarnings: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    bankDetails: {
+      accountHolder: { type: String, default: '' },
+      accountNumber: { type: String, default: '' },
+      ifscCode: { type: String, default: '' },
+      bankName: { type: String, default: '' },
+      isVerified: { type: Boolean, default: false }
+    },
+    totalDeliveries: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    averageRating: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 5
     }
   },
   { timestamps: true }

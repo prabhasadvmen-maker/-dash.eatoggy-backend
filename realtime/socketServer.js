@@ -4,6 +4,7 @@ import Order from '../models/orders/Order.js';
 import Delivery from '../models/delivery/Delivery.js';
 import Subscription from '../models/subscriptions/Subscription.js';
 import { env, logger } from '../config/index.js';
+import { setupDeliveryPartnerSocketEvents } from './deliveryPartnerEvents.js';
 
 let io = null;
 
@@ -68,7 +69,10 @@ export const initSocketServer = (httpServer) => {
   io.on('connection', (socket) => {
     logger.info(`Socket connected: ${socket.id} (User: ${socket.user?.id}, Role: ${socket.user?.role})`);
 
-    // Join order tracking room with IDOR authorization
+    // Setup delivery partner socket events
+    if (socket.user?.role === 'DeliveryPartner') {
+      setupDeliveryPartnerSocketEvents(io, socket);
+    }
     socket.on('join:order', async (data) => {
       try {
         const orderId = typeof data === 'string' ? data : data?.orderId;

@@ -1,0 +1,592 @@
+[
+  {
+    "name": "GET Dashboard",
+    "method": "GET",
+    "endpoint": "/dashboard",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "isOnline": true,
+      "totalEarnings": 200,
+      "completedDeliveries": 4,
+      "totalTargetDeliveries": 15,
+      "pendingDeliveries": 1,
+      "rejectedDeliveries": 0,
+      "nextDeliveries": [
+        {
+          "orderId": "ORD-2024-TEST-001",
+          "status": "ACCEPTED",
+          "paymentType": "PREPAID",
+          "pickupAddress": "Sector 5, Delhi",
+          "dropAddress": "123 Main Street, Sector 5, Delhi"
+        }
+      ]
+    }
+  },
+  {
+    "name": "Update Partner Status",
+    "method": "PUT",
+    "endpoint": "/partner/status",
+    "status": 200,
+    "success": true,
+    "message": "Status updated",
+    "data": {
+      "isActive": true
+    }
+  },
+  {
+    "name": "Get Today Orders",
+    "method": "GET",
+    "endpoint": "/orders/today",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "assignments": [
+        {
+          "orderId": "ORD-2024-TEST-001",
+          "customerName": "Test Customer",
+          "address": "123 Main Street, Sector 5, Delhi",
+          "timeSlot": "ASAP",
+          "tiffinsCount": 1,
+          "status": "delivered",
+          "statusText": "DELIVERED"
+        },
+        {
+          "orderId": "ORD-2024-TEST-001",
+          "customerName": "Test Customer",
+          "address": "123 Main Street, Sector 5, Delhi",
+          "timeSlot": "ASAP",
+          "tiffinsCount": 1,
+          "status": "delivered",
+          "statusText": "DELIVERED"
+        },
+        {
+          "orderId": "ORD-2024-TEST-001",
+          "customerName": "Test Customer",
+          "address": "123 Main Street, Sector 5, Delhi",
+          "timeSlot": "ASAP",
+          "tiffinsCount": 1,
+          "status": "delivered",
+          "statusText": "DELIVERED"
+        },
+        {
+          "orderId": "ORD-2024-TEST-001",
+          "customerName": "Test Customer",
+          "address": "123 Main Street, Sector 5, Delhi",
+          "timeSlot": "ASAP",
+          "tiffinsCount": 1,
+          "status": "delivered",
+          "statusText": "DELIVERED"
+        },
+        {
+          "orderId": "ORD-2024-TEST-001",
+          "customerName": "Test Customer",
+          "address": "123 Main Street, Sector 5, Delhi",
+          "timeSlot": "ASAP",
+          "tiffinsCount": 1,
+          "status": "accepted",
+          "statusText": "ACCEPTED"
+        }
+      ]
+    }
+  },
+  {
+    "name": "Get Order Details",
+    "method": "GET",
+    "endpoint": "/orders/6ac0ffd46f35ac84e2a486fe",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "orderId": "ORD-2024-TEST-001",
+      "customerName": "Test Customer",
+      "subscriptionType": "Eatoggy Customer",
+      "phoneNumber": "9876543211",
+      "deliveryLocation": "123 Main Street, Sector 5, Delhi",
+      "payloadTitle": "Delivery Order",
+      "packagesCount": 1,
+      "timeSlot": "ASAP",
+      "items": [],
+      "totalItems": 1,
+      "deliveryNotes": "",
+      "isPickupConfirmed": false
+    }
+  },
+  {
+    "name": "Confirm Pickup",
+    "method": "POST",
+    "endpoint": "/orders/6ac0ffd46f35ac84e2a486fe/confirm-pickup",
+    "status": 200,
+    "success": true,
+    "message": "Pickup confirmed",
+    "data": {
+      "orderId": "ORD-2024-TEST-001",
+      "status": "pickedUp",
+      "isPickupConfirmed": true
+    }
+  },
+  {
+    "name": "Verify OTP",
+    "method": "POST",
+    "endpoint": "/orders/6ac0ffd46f35ac84e2a486fe/verify-otp",
+    "status": 200,
+    "success": true,
+    "message": "OTP verified",
+    "data": {
+      "orderId": "ORD-2024-TEST-001",
+      "isVerified": true,
+      "status": "delivered"
+    }
+  },
+  {
+    "name": "Complete Delivery",
+    "method": "POST",
+    "endpoint": "/orders/6ac0ffd46f35ac84e2a486fe/complete",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "orderId": "ORD-2024-TEST-001",
+      "timestamp": "10/3/2026, 6:45:24 PM",
+      "customerName": "Test Customer",
+      "earningsCredited": 50,
+      "earningsCreditedFormatted": "50.00",
+      "status": "delivered"
+    }
+  },
+  {
+    "name": "Report Issue",
+    "method": "POST",
+    "endpoint": "/orders/6ac0ffd46f35ac84e2a486fe/report-issue",
+    "status": 200,
+    "success": true,
+    "message": "Issue reported successfully",
+    "data": {
+      "issueId": "ISS-324646",
+      "orderId": "ORD-2024-TEST-001",
+      "status": "failed"
+    }
+  },
+  {
+    "name": "Get Order History",
+    "method": "GET",
+    "endpoint": "/orders/history?filter=today&page=1&limit=10",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "history": [
+        {
+          "orderId": "ORD-2024-TEST-001",
+          "customerName": "Test Customer",
+          "timestamp": "2026-10-03T13:15:24.366Z",
+          "status": "delivered",
+          "statusText": "DELIVERED",
+          "earningsAmount": 50,
+          "earningsFormatted": "50.00"
+        },
+        {
+          "orderId": "ORD-2024-TEST-001",
+          "customerName": "Test Customer",
+          "timestamp": "2026-10-03T13:10:48.219Z",
+          "status": "delivered",
+          "statusText": "DELIVERED",
+          "earningsAmount": 50,
+          "earningsFormatted": "50.00"
+        },
+        {
+          "orderId": "ORD-2024-TEST-001",
+          "customerName": "Test Customer",
+          "timestamp": "2026-10-03T13:09:13.289Z",
+          "status": "delivered",
+          "statusText": "DELIVERED",
+          "earningsAmount": 50,
+          "earningsFormatted": "50.00"
+        },
+        {
+          "orderId": "ORD-2024-TEST-001",
+          "customerName": "Test Customer",
+          "timestamp": "2026-10-03T13:06:48.594Z",
+          "status": "delivered",
+          "statusText": "DELIVERED",
+          "earningsAmount": 50,
+          "earningsFormatted": "50.00"
+        },
+        {
+          "orderId": "ORD-2024-TEST-001",
+          "customerName": "Test Customer",
+          "timestamp": "2026-10-03T13:05:36.690Z",
+          "status": "delivered",
+          "statusText": "DELIVERED",
+          "earningsAmount": 50,
+          "earningsFormatted": "50.00"
+        },
+        {
+          "orderId": "ORD-20260922-3372",
+          "customerName": "Order API Customer",
+          "timestamp": "2026-10-03T11:21:04.206Z",
+          "status": "delivered",
+          "statusText": "DELIVERED",
+          "earningsAmount": 35,
+          "earningsFormatted": "35.00"
+        },
+        {
+          "orderId": "ORD-20260922-1545",
+          "customerName": "Test Customer",
+          "timestamp": "2026-10-03T11:20:50.441Z",
+          "status": "delivered",
+          "statusText": "DELIVERED",
+          "earningsAmount": 35,
+          "earningsFormatted": "35.00"
+        },
+        {
+          "orderId": "ORD-SUB-20261001-8856",
+          "customerName": "Home",
+          "timestamp": "2026-10-03T11:20:28.419Z",
+          "status": "delivered",
+          "statusText": "DELIVERED",
+          "earningsAmount": 35,
+          "earningsFormatted": "35.00"
+        },
+        {
+          "orderId": "ORD-SUB-20261002-3710",
+          "customerName": "Home",
+          "timestamp": "2026-10-03T11:19:14.204Z",
+          "status": "delivered",
+          "statusText": "DELIVERED",
+          "earningsAmount": 35,
+          "earningsFormatted": "35.00"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 10,
+        "total": 9
+      }
+    }
+  },
+  {
+    "name": "Get Navigation Data",
+    "method": "GET",
+    "endpoint": "/orders/6ac0ffd46f35ac84e2a486fe/navigation",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "orderId": "ORD-2024-TEST-001",
+      "etaMinutes": 1,
+      "distanceKm": 0,
+      "turnDirection": "Follow the highlighted route on the map",
+      "destinationTitle": "Test Customer",
+      "destinationDetails": "Apartment 5B",
+      "destinationAddress": "123 Main Street, Sector 5, Delhi",
+      "latitude": 28.6139,
+      "longitude": 77.209
+    }
+  },
+  {
+    "name": "Update Partner Location",
+    "method": "PUT",
+    "endpoint": "/partner/location",
+    "status": 200,
+    "success": true,
+    "message": "Location updated",
+    "data": {
+      "success": true,
+      "message": "Location updated",
+      "data": null
+    }
+  },
+  {
+    "name": "Get Zone Data",
+    "method": "GET",
+    "endpoint": "/partner/zone",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "zoneName": "North Delhi",
+      "zoneSubtitle": "High-density tiffin delivery sector",
+      "radiusKm": 10,
+      "subscribersCount": 0,
+      "todayRuns": 5,
+      "completedRuns": 0,
+      "routeStops": [
+        {
+          "id": "stop_1",
+          "timeSlot": "12:00 PM - 1:00 PM",
+          "mealType": "LUNCH",
+          "tiffinsCount": 2,
+          "customerName": "Meera Krishnan",
+          "address": "Penthouse A, Skyline Manor Residences",
+          "latitude": 28.5729,
+          "longitude": 77.2289
+        }
+      ]
+    }
+  },
+  {
+    "name": "Get Zone Subscribers",
+    "method": "GET",
+    "endpoint": "/partner/zone/subscribers?page=1&limit=10",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "subscribers": [
+        {
+          "id": "sub_1",
+          "name": "Meera Krishnan",
+          "plan": "Lunch + Dinner",
+          "address": "Penthouse A, Skyline Manor Residences",
+          "subscriptionSince": "2025-10-12T00:00:00Z",
+          "status": "active",
+          "isNew": true,
+          "avatarUrl": "https://ui-avatars.com/api/?name=Meera+Krishnan&background=d4af37&color=fff"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 10,
+        "total": 1
+      }
+    }
+  },
+  {
+    "name": "Get Earnings",
+    "method": "GET",
+    "endpoint": "/earnings?period=today",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "settlements": [
+        {
+          "_id": "6ac0ffd649beb8366c42fca2",
+          "settlementNumber": "TXN-302633",
+          "entityType": "DELIVERY_PARTNER",
+          "restaurantId": null,
+          "deliveryPartnerId": "6abf6dbfbda84c00216fd598",
+          "periodStart": "2026-10-03T13:15:02.633Z",
+          "periodEnd": "2026-10-03T13:15:02.633Z",
+          "orderIds": [],
+          "subscriptionOccurrenceIds": [],
+          "totalOrdersCount": 0,
+          "grossEarnings": 1000,
+          "platformCommissionRate": 15,
+          "platformCommissionDeduction": 0,
+          "taxDeduction": 0,
+          "refundDeduction": 0,
+          "otherDeductions": 0,
+          "netPayoutAmount": 1000,
+          "currency": "INR",
+          "status": "PENDING",
+          "transactionReference": "",
+          "failureReason": "",
+          "processedAt": null,
+          "paidAt": null,
+          "notes": "",
+          "createdAt": "2026-10-03T13:15:02.643Z",
+          "updatedAt": "2026-10-03T13:15:02.643Z",
+          "__v": 0
+        },
+        {
+          "_id": "6ac0feed17459e9f823f2ff6",
+          "settlementNumber": "TXN-069957",
+          "entityType": "DELIVERY_PARTNER",
+          "restaurantId": null,
+          "deliveryPartnerId": "6abf6dbfbda84c00216fd598",
+          "periodStart": "2026-10-03T13:11:09.957Z",
+          "periodEnd": "2026-10-03T13:11:09.957Z",
+          "orderIds": [],
+          "subscriptionOccurrenceIds": [],
+          "totalOrdersCount": 0,
+          "grossEarnings": 1000,
+          "platformCommissionRate": 15,
+          "platformCommissionDeduction": 0,
+          "taxDeduction": 0,
+          "refundDeduction": 0,
+          "otherDeductions": 0,
+          "netPayoutAmount": 1000,
+          "currency": "INR",
+          "status": "PENDING",
+          "transactionReference": "",
+          "failureReason": "",
+          "processedAt": null,
+          "paidAt": null,
+          "notes": "",
+          "createdAt": "2026-10-03T13:11:09.961Z",
+          "updatedAt": "2026-10-03T13:11:09.961Z",
+          "__v": 0
+        }
+      ],
+      "totalPaid": 0,
+      "totalPending": 2000,
+      "settlementsCount": 2
+    }
+  },
+  {
+    "name": "Withdraw Earnings",
+    "method": "POST",
+    "endpoint": "/earnings/withdraw",
+    "status": 200,
+    "success": true,
+    "message": "Withdrawal request initiated successfully",
+    "data": {
+      "transactionId": "TXN-325120",
+      "amount": 1000,
+      "status": "PENDING",
+      "estimatedSettlement": "2 business days"
+    }
+  },
+  {
+    "name": "Get Notifications",
+    "method": "GET",
+    "endpoint": "/notifications?page=1&limit=20",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "notifications": [
+        {
+          "id": "6ac0ffd46f35ac84e2a486ff",
+          "title": "New Order Available",
+          "description": "Order ORD-2024-TEST-001 is available for pickup",
+          "createdAt": "2026-10-03T13:15:00.713Z",
+          "isRead": true,
+          "type": "NEW_ORDER"
+        },
+        {
+          "id": "6ac0febe875ac5c857d4b569",
+          "title": "New Order Available",
+          "description": "Order ORD-2024-TEST-001 is available for pickup",
+          "createdAt": "2026-10-03T13:10:22.032Z",
+          "isRead": true,
+          "type": "NEW_ORDER"
+        },
+        {
+          "id": "6ac0fe65ea99a12ac3a16faa",
+          "title": "New Order Available",
+          "description": "Order ORD-2024-TEST-001 is available for pickup",
+          "createdAt": "2026-10-03T13:08:53.160Z",
+          "isRead": true,
+          "type": "NEW_ORDER"
+        },
+        {
+          "id": "6ac0fddae7398dcfaa0d4521",
+          "title": "New Order Available",
+          "description": "Order ORD-2024-TEST-001 is available for pickup",
+          "createdAt": "2026-10-03T13:06:34.784Z",
+          "isRead": true,
+          "type": "NEW_ORDER"
+        },
+        {
+          "id": "6ac0fd8f7f465592c12eb3e2",
+          "title": "New Order Available",
+          "description": "Order ORD-2024-TEST-001 is available for pickup",
+          "createdAt": "2026-10-03T13:05:19.317Z",
+          "isRead": true,
+          "type": "NEW_ORDER"
+        }
+      ],
+      "unreadCount": 0,
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 5
+      }
+    }
+  },
+  {
+    "name": "Mark Notification Read",
+    "method": "PUT",
+    "endpoint": "/notifications/6ac0ffd46f35ac84e2a486ff/read",
+    "status": 200,
+    "success": true,
+    "message": "Marked as read",
+    "data": {
+      "success": true,
+      "message": "Marked as read",
+      "data": null
+    }
+  },
+  {
+    "name": "Mark All Notifications Read",
+    "method": "PUT",
+    "endpoint": "/notifications/read-all",
+    "status": 200,
+    "success": true,
+    "message": "All notifications marked as read",
+    "data": {
+      "success": true,
+      "message": "All notifications marked as read",
+      "data": null
+    }
+  },
+  {
+    "name": "Get FAQs",
+    "method": "GET",
+    "endpoint": "/support/faqs",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "faqs": [
+        {
+          "id": "delivery_issues",
+          "title": "Delivery Issues",
+          "answer": "Please contact kitchen support immediately via chat if food is spilled or missing."
+        },
+        {
+          "id": "payment_settlements",
+          "title": "Payment & Settlements",
+          "answer": "Payouts are automatically settled to your registered bank account every Tuesday and Friday by 6:00 PM."
+        },
+        {
+          "id": "account_verification",
+          "title": "Account & Verification",
+          "answer": "Your partner badge is verified after standard KYC checks within 24-48 hours of onboarding."
+        },
+        {
+          "id": "app_navigation_issues",
+          "title": "App & Navigation Issues",
+          "answer": "If GPS deviates or map freezes, tap Re-center on the active order screen or toggle GPS from device settings."
+        }
+      ]
+    }
+  },
+  {
+    "name": "Submit Support Ticket",
+    "method": "POST",
+    "endpoint": "/support/ticket",
+    "status": 200,
+    "success": true,
+    "message": "Support ticket created",
+    "data": {
+      "ticketId": "TK-5362",
+      "status": "OPEN",
+      "estimatedResponseTime": "24 hours"
+    }
+  },
+  {
+    "name": "Update Partner Profile",
+    "method": "PUT",
+    "endpoint": "/partner/profile",
+    "status": 200,
+    "success": true,
+    "message": "Success",
+    "data": {
+      "partner": {
+        "id": "6abf6dbfbda84c00216fd598",
+        "mobile": "9266098420",
+        "fullName": "Test Partner",
+        "email": "prabhas.advmen@gmail.com",
+        "vehicleType": "Bike",
+        "isActive": true,
+        "onboardingStatus": "APPROVED"
+      }
+    }
+  }
+]
