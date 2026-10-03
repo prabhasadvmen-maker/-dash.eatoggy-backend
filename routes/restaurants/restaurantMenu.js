@@ -10,6 +10,7 @@ import {
   toggleAvailability,
   deleteDraft,
   createCategory,
+  getCategoryItems,
 } from '../../controllers/restaurants/restaurantMenuController.js';
 import { getCategories, getSubcategories } from '../../controllers/super-admin/superAdminCategoryController.js';
 
@@ -17,10 +18,6 @@ const router = express.Router();
 
 // Middleware: Verify that the authenticated user is an approved restaurant
 const checkRestaurantApproved = (req, res, next) => {
-  // If the requirement dictates they can only create menu items if APPROVED
-  // The prompt says: "Customer visibility requires restaurant onboardingStatus = APPROVED"
-  // But restaurants might build their menu while pending onboarding.
-  // We'll just allow menu creation, but the item won't be visible to customers.
   next();
 };
 
@@ -29,6 +26,13 @@ router.use(protectRestaurant);
 
 // Image upload config for single file named 'image'
 const imageUpload = upload.single('image');
+
+router.get('/items/categories/:categoryId/items', getCategoryItems);
+router.post('/items', imageUpload, createMenuItem);
+router.put('/items/:id', imageUpload, updateMenuItem);
+router.patch('/items/:id/toggle-stock', toggleAvailability);
+router.delete('/items/:id', deleteDraft);
+
 
 router.post('/', imageUpload, createMenuItem);
 router.get('/', getMenuItems);

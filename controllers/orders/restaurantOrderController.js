@@ -246,3 +246,140 @@ export const updateKitchenOrderStatus = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * @desc    Get Order History
+ * @route   GET /api/restaurants/orders/history
+ * @access  Private
+ */
+export const getOrderHistory = async (req, res, next) => {
+  try {
+    const restaurantId = getRestaurantId(req);
+    if (!restaurantId) {
+      return errorResponse(res, { statusCode: 401, message: 'Unauthorized restaurant access' });
+    }
+
+    const { page = 1, limit = 20 } = req.query;
+    const Order = (await import('../../models/orders/Order.js')).default;
+    
+    const query = { 
+      restaurantId, 
+      orderStatus: { $in: ['DELIVERED', 'CANCELLED', 'REJECTED'] } 
+    };
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const limitVal = parseInt(limit);
+    
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitVal)
+        .populate('customerId', 'fullName mobile email')
+        .populate('restaurantId', 'restaurantName'),
+      Order.countDocuments(query)
+    ]);
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: 'Order history retrieved successfully',
+      data: orders,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: limitVal,
+        totalPages: Math.ceil(total / limitVal)
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc    Handover Order
+ * @route   POST /api/restaurants/orders/:orderId/handover
+ * @access  Private
+ */
+export const handoverOrder = async (req, res, next) => {
+  try {
+    const restaurantId = getRestaurantId(req);
+    if (!restaurantId) {
+      return errorResponse(res, { statusCode: 401, message: 'Unauthorized restaurant access' });
+    }
+
+    const { orderId } = req.params;
+    const { riderOtp, notes } = req.body;
+
+    const Order = (await import('../../models/orders/Order.js')).default;
+    const order = await Order.findOne({ _id: orderId, restaurantId });
+
+    if (!order) {
+      return errorResponse(res, { statusCode: 404, message: 'Order not found' });
+    }
+    
+    if (order.orderStatus !== 'READY' && order.orderStatus !== 'READY_FOR_PICKUP') {
+      return errorResponse(res, { statusCode: 400, message: 'Order must be READY for pickup' });
+    }
+    
+    order.orderStatus = 'OUT_FOR_DELIVERY';
+    const now = new Date();
+    order.statusHistory.push({
+      status: 'OUT_FOR_DELIVERY',
+      timestamp: now,
+      updatedBy: 'RESTAURANT',
+      note: notes || 'Handed over to rider'
+    });
+    
+    await order.save();
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: 'Order handed over successfully',
+      data: {
+        orderId: order._id,
+        status: order.orderStatus,
+        pickedUpAt: now
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * @desc    Toggle Online Status
+ * @route   PATCH /api/restaurants/orders/status/toggle-online
+ * @access  Private
+ */
+export const toggleOnlineStatus = async (req, res, next) => {
+  try {
+    const restaurantId = getRestaurantId(req);
+    if (!restaurantId) {
+      return errorResponse(res, { statusCode: 401, message: 'Unauthorized restaurant access' });
+    }
+
+    const { isOnline, reason } = req.body;
+    
+    const Restaurant = (await import('../../models/restaurants/Restaurant.js')).default;
+    const restaurant = await Restaurant.findById(restaurantId);
+    
+    if (!restaurant) {
+      return errorResponse(res, { statusCode: 404, message: 'Restaurant not found' });
+    }
+    
+    restaurant.isOnline = isOnline;
+    await restaurant.save();
+
+    return successResponse(res, {
+      statusCode: 200,
+      message: `Restaurant is now ${isOnline ? 'online' : 'offline'}`,
+      data: {
+        isOnline: restaurant.isOnline,
+        updatedAt: restaurant.updatedAt
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};

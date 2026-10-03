@@ -347,3 +347,71 @@ export const getRestaurantMenu = async (req, res) => {
     res.status(500).json({ success: false, message: error.message, statusCode: 500 });
   }
 };
+
+// @desc    Get all dishes under a specific category
+export const getCategoryItems = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const { page = 1, limit = 20, sortBy, isAvailable } = req.query;
+    
+    const query = { 
+      categoryId,
+      restaurantId: req.restaurant?.id || req.restaurant?._id || req.user?.id || req.user?._id
+    };
+    
+    if (isAvailable !== undefined) {
+      query.availability = isAvailable === 'true';
+    }
+
+    let sort = {};
+    if (sortBy === 'name') sort.name = 1;
+    else if (sortBy === 'price') sort.price = 1;
+    else if (sortBy === 'popularity') sort.soldCount = -1; // Assuming soldCount exists
+    else sort.createdAt = -1;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const limitVal = parseInt(limit);
+
+    const [items, total] = await Promise.all([
+      MenuItem.find(query)
+        .sort(sort)
+        .skip(skip)
+        .limit(limitVal),
+      MenuItem.countDocuments(query)
+    ]);
+
+    const formattedItems = await Promise.all(items.map(async (item) => {
+      let imageUrl = item.image;
+      if (imageUrl) {
+        imageUrl = await getPresignedUrl(imageUrl);
+      }
+      return {
+        id: item._id,
+        categoryId: item.categoryId,
+        name: item.name,
+        description: item.description,
+        price: item.price,
+        isVeg: item.foodType === 'VEG',
+        imageUrl,
+        isAvailable: item.availability,
+        preparationTime: item.preparationTime
+      };
+    }));
+
+    res.json({
+      success: true,
+      message: 'Items retrieved successfully',
+      data: formattedItems,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: limitVal,
+        totalPages: Math.ceil(total / limitVal)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching category items:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch category items' });
+  }
+};
+

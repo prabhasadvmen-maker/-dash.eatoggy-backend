@@ -68,3 +68,32 @@ export const registerDeviceToken = asyncHandler(async (req, res) => {
     message: 'FCM device token registered successfully'
   });
 });
+
+export const markNotificationsRead = asyncHandler(async (req, res) => {
+  const restaurantId = req.restaurant?.id || req.user?.id;
+  if (!restaurantId) {
+    return errorResponse(res, { statusCode: 401, message: 'Unauthorized restaurant access' });
+  }
+
+  const { notificationIds } = req.body;
+  const query = { restaurantId, isRead: false };
+
+  if (notificationIds && Array.isArray(notificationIds) && notificationIds.length > 0) {
+    query._id = { $in: notificationIds };
+  }
+
+  const updateResult = await Notification.updateMany(query, {
+    $set: { isRead: true, readAt: new Date() }
+  });
+
+  const unreadCount = await Notification.countDocuments({ restaurantId, isRead: false });
+
+  return successResponse(res, {
+    statusCode: 200,
+    message: 'Notifications marked as read successfully',
+    data: {
+      markedCount: updateResult.modifiedCount,
+      unreadCount
+    }
+  });
+});

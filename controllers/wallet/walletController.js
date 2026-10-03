@@ -89,3 +89,55 @@ export const addMoney = asyncHandler(async (req, res) => {
     data: { transactionId: 'TXN123', newBalance: amount }
   });
 });
+
+export const requestWithdrawal = asyncHandler(async (req, res) => {
+  const restaurantId = req.restaurant?.id || req.user?.id;
+  if (!restaurantId) {
+    return errorResponse(res, { statusCode: 401, message: 'Unauthorized restaurant access' });
+  }
+
+  const { amount } = req.body;
+  if (!amount || amount <= 0) {
+    return errorResponse(res, { statusCode: 400, message: 'Invalid withdrawal amount' });
+  }
+
+  const Restaurant = (await import('../../models/restaurants/Restaurant.js')).default;
+  const restaurant = await Restaurant.findById(restaurantId);
+  
+  if (!restaurant || !restaurant.bankDetails || !restaurant.bankDetails.accountNumber) {
+    return errorResponse(res, { statusCode: 400, message: 'Verified bank account is required for withdrawal' });
+  }
+
+  let wallet = await Wallet.findOne({ restaurantId });
+  if (!wallet || wallet.currentBalance < amount) {
+    return errorResponse(res, { statusCode: 400, message: 'Insufficient wallet balance' });
+  }
+
+  // Create withdrawal transaction record
+  const transaction = await Transaction.create({
+    walletId: wallet._id,
+    restaurantId,
+    type: 'WITHDRAWAL',
+    amount,
+    status: 'PROCESSING',
+    reference: `WD-${Date.now()}`
+  });
+
+  wallet.currentBalance -= amount;
+  wallet.pendingAmount = (wallet.pendingAmount || 0) + amount;
+  await wallet.save();
+
+  const estimatedSettlementDate = new Date();
+  estimatedSettlementDate.setDate(estimatedSettlementDate.getDate() + 2); // T+2 business days
+
+  return successResponse(res, {
+    statusCode: 200,
+    message: 'Withdrawal requested successfully',
+    data: {
+      transactionId: transaction._id,
+      amount,
+      status: 'PROCESSING',
+      estimatedSettlementDate
+    }
+  });
+});

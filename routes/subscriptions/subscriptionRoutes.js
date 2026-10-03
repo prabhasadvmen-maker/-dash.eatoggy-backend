@@ -31,8 +31,10 @@ router.post('/customers/subscriptions/:id/occurrences/:occId/skip', protectCusto
 // RESTAURANT TIFFIN PLAN MANAGEMENT ROUTES
 // ==========================================
 router.get('/restaurants/tiffin-plans', protectRestaurant, restaurantCtrl.getRestaurantPlans);
+router.get('/restaurants/tiffin-plans/deliveries/today', protectRestaurant, restaurantCtrl.getTodaysTiffinDeliveries);
 router.post('/restaurants/tiffin-plans', protectRestaurant, restaurantCtrl.createPlan);
 router.patch('/restaurants/tiffin-plans/:id', protectRestaurant, restaurantCtrl.updatePlan);
+router.put('/restaurants/tiffin-plans/:id', protectRestaurant, restaurantCtrl.editPlan);
 router.patch('/restaurants/tiffin-plans/:id/status', protectRestaurant, restaurantCtrl.updateStatus);
 router.delete('/restaurants/tiffin-plans/:id', protectRestaurant, restaurantCtrl.deletePlan);
 
