@@ -6,6 +6,7 @@ import * as lifecycleController from '../../controllers/delivery/deliveryOrderLi
 import * as navigationController from '../../controllers/delivery/deliveryNavigationController.js';
 import * as zoneController from '../../controllers/delivery/deliveryZoneController.js';
 import * as appController from '../../controllers/delivery/deliveryAppController.js';
+import * as pendingController from '../../controllers/delivery/deliveryPendingController.js';
 
 const router = express.Router();
 
@@ -60,6 +61,21 @@ router.post('/jobs/:id/accept', protectDeliveryPartner, deliveryOrderController.
 router.patch('/jobs/:id/status', protectDeliveryPartner, deliveryOrderController.updateStatus);
 router.patch('/jobs/:id/location', protectDeliveryPartner, deliveryOrderController.updateLocation);
 router.post('/jobs/:id/verify-otp', protectDeliveryPartner, deliveryOrderController.verifyOtpAndComplete);
+
+// Device Token Routes
+router.post('/device-token', protectDeliveryPartner, pendingController.saveDeviceToken);
+router.get('/device-token', protectDeliveryPartner, pendingController.getDeviceTokens);
+router.delete('/device-token', protectDeliveryPartner, pendingController.deleteDeviceToken);
+
+// Tiffin Routes
+router.get('/tiffin/routes/today', protectDeliveryPartner, pendingController.getTodayTiffinRoutes);
+router.get('/tiffin/stops/:stopId', protectDeliveryPartner, pendingController.getTiffinStopDetail);
+router.post('/tiffin/stops/:stopId/complete', protectDeliveryPartner, pendingController.completeTiffinStop);
+
+// Emergency SOS Routes
+router.post('/emergency/sos', protectDeliveryPartner, pendingController.triggerSOS);
+router.get('/emergency/sos', protectDeliveryPartner, pendingController.getSOSAlerts);
+router.patch('/emergency/sos/:sosId', protectDeliveryPartner, pendingController.updateSOSStatus);
 
 // Customer Tracking Route
 router.get('/tracking/:id', protectCustomer, deliveryOrderController.getCustomerOrderTracking);
