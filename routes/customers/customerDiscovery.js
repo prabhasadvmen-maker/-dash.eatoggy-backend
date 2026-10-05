@@ -12,9 +12,7 @@ import {
 
 const router = express.Router();
 
-// Apply customer authentication middleware
-router.use(protectCustomer);
-
+// Public routes — no auth required for guest browsing
 router.get('/restaurants', getRestaurants);
 router.get('/restaurants/:id', getRestaurantById);
 router.get('/restaurants/:id/menu', getRestaurantMenu);

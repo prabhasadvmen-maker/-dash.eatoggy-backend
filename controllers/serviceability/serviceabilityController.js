@@ -30,9 +30,11 @@ export const checkServiceability = asyncHandler(async (req, res) => {
   // }
 
   return successResponse(res, {
-    isServiceable: true,
-    estimatedDeliveryMinutes: 35,
-    kitchenId: 'kitchen_gurugram_01',
-    deliveryFee: 30.0
+    data: {
+      isServiceable: true,
+      estimatedDeliveryMinutes: 35,
+      kitchenId: 'kitchen_gurugram_01',
+      deliveryFee: 30.0
+    }
   });
 });

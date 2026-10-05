@@ -1,0 +1,157 @@
+{
+  "info": {
+    "name": "Eatoggy Delivery - Pending APIs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://eatoggy-backend.onrender.com"
+    },
+    {
+      "key": "token",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7ImlkIjoiNmFiMjZlMWYzODlhYTlhN2MyNTcxMTU1Iiwicm9sZSI6IkRlbGl2ZXJ5UGFydG5lciJ9LCJkZWxpdmVyeVBhcnRuZXIiOnsiaWQiOiI2YWIyNmUxZjM4OWFhOWE3YzI1NzExNTUiLCJtb2JpbGUiOiI5NTM5MjA3ODYwIiwicm9sZSI6IkRlbGl2ZXJ5UGFydG5lciJ9LCJpYXQiOjE3OTExOTU3MzksImV4cCI6MTc5Mzc4NzczOX0.nZzwEMkAAQk0BjpOYLSrCNIDn9hu8bgzDgFk1G5Nnno"
+    }
+  ],
+  "item": [
+    {
+      "name": "Device Token",
+      "item": [
+        {
+          "name": "Save Device Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/delivery/device-token",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"fcm_device_token_here\",\n  \"platform\": \"android\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Device Tokens",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/delivery/device-token"
+          }
+        },
+        {
+          "name": "Delete Device Token",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/delivery/device-token",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"fcm_device_token_here\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tiffin Routes",
+      "item": [
+        {
+          "name": "Get Today Tiffin Routes",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/delivery/tiffin/routes/today"
+          }
+        },
+        {
+          "name": "Get Tiffin Stop Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/delivery/tiffin/stops/:stopId",
+            "variable": [
+              { "key": "stopId", "value": "STOP_ID_HERE" }
+            ]
+          }
+        },
+        {
+          "name": "Complete Tiffin Stop",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/delivery/tiffin/stops/:stopId/complete",
+            "variable": [
+              { "key": "stopId", "value": "STOP_ID_HERE" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Delivered at door\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Emergency SOS",
+      "item": [
+        {
+          "name": "Trigger SOS",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/delivery/emergency/sos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sosType\": \"ACCIDENT\",\n  \"message\": \"Bike accident near highway\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.2090\n}"
+            }
+          }
+        },
+        {
+          "name": "Get SOS Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url}}/api/delivery/emergency/sos"
+          }
+        },
+        {
+          "name": "Update SOS Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{base_url}}/api/delivery/emergency/sos/:sosId",
+            "variable": [
+              { "key": "sosId", "value": "SOS_ID_HERE" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\"\n}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
