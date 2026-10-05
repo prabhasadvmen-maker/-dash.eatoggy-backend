@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Delivery from '../../models/delivery/Delivery.js';
 import Order from '../../models/orders/Order.js';
 import DeliveryPartner from '../../models/delivery/DeliveryPartner.js';
@@ -5,7 +6,13 @@ import { successResponse, errorResponse } from '../../common/apiResponse.js';
 import { logger } from '../../config/index.js';
 
 const getPartnerId = (req) => {
-  return req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
+  const raw = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
+  if (!raw) return null;
+  try {
+    return new mongoose.Types.ObjectId(raw.toString());
+  } catch {
+    return null;
+  }
 };
 
 /**

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Delivery from '../../models/delivery/Delivery.js';
 import DeliveryPartner from '../../models/delivery/DeliveryPartner.js';
 import Notification from '../../models/notifications/Notification.js';
@@ -6,7 +7,13 @@ import Settlement from '../../models/settlements/Settlement.js';
 import { successResponse, errorResponse } from '../../common/apiResponse.js';
 
 const getPartnerId = (req) => {
-  return req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
+  const raw = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
+  if (!raw) return null;
+  try {
+    return new mongoose.Types.ObjectId(raw.toString());
+  } catch {
+    return null;
+  }
 };
 
 // ======================= EARNINGS APIS =======================
@@ -294,9 +301,16 @@ export const submitSupportTicket = async (req, res, next) => {
     const partnerId = getPartnerId(req);
     const { category, subject, message, description, orderId, attachments } = req.body;
 
-    const allowedCategories = ['ORDER_ISSUE', 'PAYMENT_ISSUE', 'CUSTOMER_UNREACHABLE', 'VEHICLE_BREAKDOWN', 'APP_ISSUE', 'OTHER'];
-    if (!allowedCategories.includes(category)) {
-      return errorResponse(res, { statusCode: 400, message: `Invalid category. Allowed: ${allowedCategories.join(', ')}` });
+    const categoryMap = {
+      ORDER_ISSUE: 'ORDER_ISSUE',
+      PAYMENT_ISSUE: 'PAYMENT',
+      CUSTOMER_UNREACHABLE: 'DELIVERY',
+      VEHICLE_BREAKDOWN: 'OTHER',
+      APP_ISSUE: 'TECHNICAL',
+      OTHER: 'OTHER'
+    };
+    if (!categoryMap[category]) {
+      return errorResponse(res, { statusCode: 400, message: `Invalid category. Allowed: ${Object.keys(categoryMap).join(', ')}` });
     }
 
     const ticketNumber = `TCK-${Date.now().toString().slice(-5)}`;
@@ -306,7 +320,7 @@ export const submitSupportTicket = async (req, res, next) => {
       userType: 'DELIVERY_PARTNER',
       userId: partnerId,
       deliveryPartnerId: partnerId,
-      category: category === 'PAYMENT_ISSUE' ? 'PAYMENT' : category === 'CUSTOMER_UNREACHABLE' ? 'DELIVERY' : category === 'VEHICLE_BREAKDOWN' ? 'OTHER' : category === 'APP_ISSUE' ? 'TECHNICAL' : category,
+      category: categoryMap[category],
       subject: subject || category,
       description: description || message,
       orderId: orderId?.match(/^[0-9a-fA-F]{24}$/) ? orderId : undefined,

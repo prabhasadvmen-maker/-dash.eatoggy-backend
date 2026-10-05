@@ -38,6 +38,8 @@ router.get('/restaurants/earnings/:id', protectRestaurant, getMyRestaurantSettle
 // ==========================================
 // DELIVERY PARTNER EARNINGS ENDPOINTS
 // ==========================================
+router.get('/delivery/earnings/breakdown', protectDeliveryPartner, getMyDeliveryEarnings);
+router.get('/delivery/earnings/summary', protectDeliveryPartner, getMyDeliveryEarnings);
 router.get('/delivery/earnings', protectDeliveryPartner, getMyDeliveryEarnings);
 router.get('/delivery/earnings/:id', protectDeliveryPartner, getMyDeliverySettlementDetail);
 
