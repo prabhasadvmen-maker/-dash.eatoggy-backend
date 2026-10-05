@@ -16,9 +16,15 @@ router.get('/orders/today', protectDeliveryPartner, deliveryDashboardController.
 router.put('/partner/location', protectDeliveryPartner, navigationController.updateLocation);
 router.put('/partner/profile', protectDeliveryPartner, appController.updateProfile);
 
-// Delivery Partner Earnings Routes
+// Delivery Partner Earnings Routes — static sub-routes MUST come before /:id
+router.get('/earnings/breakdown', protectDeliveryPartner, appController.getEarnings);
+router.get('/earnings/summary', protectDeliveryPartner, appController.getEarnings);
 router.get('/earnings', protectDeliveryPartner, appController.getEarnings);
 router.post('/earnings/withdraw', protectDeliveryPartner, appController.withdrawEarnings);
+
+// Wallet Routes
+router.get('/wallet', protectDeliveryPartner, appController.getWallet);
+router.post('/wallet/payout', protectDeliveryPartner, appController.walletPayout);
 
 // Delivery Partner Notifications Routes
 router.get('/notifications', protectDeliveryPartner, appController.getNotifications);
@@ -27,6 +33,7 @@ router.put('/notifications/:notifId/read', protectDeliveryPartner, appController
 
 // Delivery Partner Support Routes
 router.get('/support/faqs', protectDeliveryPartner, appController.getFAQs);
+router.get('/support/tickets', protectDeliveryPartner, appController.getSupportTickets);
 router.post('/support/ticket', protectDeliveryPartner, appController.submitSupportTicket);
 
 // Delivery Partner Zone Routes
@@ -37,6 +44,8 @@ router.get('/partner/zone/subscribers', protectDeliveryPartner, zoneController.g
 router.get('/orders/history', protectDeliveryPartner, lifecycleController.getOrderHistory);
 router.get('/orders/:orderId', protectDeliveryPartner, lifecycleController.getOrderDetails);
 router.get('/orders/:orderId/navigation', protectDeliveryPartner, navigationController.getNavigationData);
+router.post('/orders/:orderId/accept', protectDeliveryPartner, lifecycleController.acceptOrder);
+router.post('/orders/:orderId/reject', protectDeliveryPartner, lifecycleController.rejectOrder);
 router.post('/orders/:orderId/confirm-pickup', protectDeliveryPartner, lifecycleController.confirmPickup);
 router.post('/orders/:orderId/verify-otp', protectDeliveryPartner, lifecycleController.verifyOtp);
 router.post('/orders/:orderId/complete', protectDeliveryPartner, lifecycleController.completeDelivery);
@@ -52,7 +61,7 @@ router.patch('/jobs/:id/status', protectDeliveryPartner, deliveryOrderController
 router.patch('/jobs/:id/location', protectDeliveryPartner, deliveryOrderController.updateLocation);
 router.post('/jobs/:id/verify-otp', protectDeliveryPartner, deliveryOrderController.verifyOtpAndComplete);
 
-// Customer Tracking Route (mounted under /api/customers/orders or /api/delivery/tracking)
+// Customer Tracking Route
 router.get('/tracking/:id', protectCustomer, deliveryOrderController.getCustomerOrderTracking);
 
 export default router;

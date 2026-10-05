@@ -292,34 +292,153 @@ export const getFAQs = async (req, res, next) => {
 export const submitSupportTicket = async (req, res, next) => {
   try {
     const partnerId = getPartnerId(req);
-    const { category, subject, message, orderId } = req.body;
+    const { category, subject, message, description, orderId, attachments } = req.body;
 
-    const allowedCategories = ['delivery_issues', 'payment_settlements', 'account_verification', 'app_navigation_issues', 'general_query'];
+    const allowedCategories = ['ORDER_ISSUE', 'PAYMENT_ISSUE', 'CUSTOMER_UNREACHABLE', 'VEHICLE_BREAKDOWN', 'APP_ISSUE', 'OTHER'];
     if (!allowedCategories.includes(category)) {
-      return errorResponse(res, { statusCode: 400, message: 'Invalid category' });
+      return errorResponse(res, { statusCode: 400, message: `Invalid category. Allowed: ${allowedCategories.join(', ')}` });
     }
 
-    const ticketId = `TK-${Date.now().toString().slice(-4)}`;
-    
-    // Creates ticket in actual model
+    const ticketNumber = `TCK-${Date.now().toString().slice(-5)}`;
+
     await SupportTicket.create({
-      ticketId,
-      createdByType: 'DeliveryPartner',
-      createdById: partnerId,
-      category: category.toUpperCase(),
-      subject,
-      description: message,
-      orderId: orderId || null,
+      ticketNumber,
+      userType: 'DELIVERY_PARTNER',
+      userId: partnerId,
+      deliveryPartnerId: partnerId,
+      category: category === 'PAYMENT_ISSUE' ? 'PAYMENT' : category === 'CUSTOMER_UNREACHABLE' ? 'DELIVERY' : category === 'VEHICLE_BREAKDOWN' ? 'OTHER' : category === 'APP_ISSUE' ? 'TECHNICAL' : category,
+      subject: subject || category,
+      description: description || message,
+      orderId: orderId?.match(/^[0-9a-fA-F]{24}$/) ? orderId : undefined,
+      attachments: attachments || [],
       status: 'OPEN',
       priority: 'MEDIUM'
-    }).catch(() => {}); // Catch schema differences if any
+    });
 
     return successResponse(res, {
-      message: 'Support ticket created',
+      statusCode: 201,
+      message: 'Support ticket created successfully',
       data: {
-        ticketId,
+        ticketId: ticketNumber,
         status: 'OPEN',
-        estimatedResponseTime: '24 hours'
+        createdAt: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ======================= SUPPORT TICKETS LIST =======================
+
+/**
+ * @desc Get support tickets filed by logged-in partner
+ * @route GET /api/delivery/support/tickets
+ * @access Private (Delivery Partner)
+ */
+export const getSupportTickets = async (req, res, next) => {
+  try {
+    const partnerId = getPartnerId(req);
+
+    const tickets = await SupportTicket.find({ deliveryPartnerId: partnerId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const formatted = tickets.map(t => ({
+      ticketId: t.ticketNumber,
+      category: t.category,
+      subject: t.subject,
+      description: t.description,
+      status: t.status,
+      resolution: t.messages?.filter(m => m.senderType === 'SUPPORT_AGENT').slice(-1)[0]?.message || null,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt
+    }));
+
+    return successResponse(res, { data: { tickets: formatted } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ======================= WALLET APIS =======================
+
+/**
+ * @desc Get partner wallet balance
+ * @route GET /api/delivery/wallet
+ * @access Private (Delivery Partner)
+ */
+export const getWallet = async (req, res, next) => {
+  try {
+    const partnerId = getPartnerId(req);
+
+    const partner = await DeliveryPartner.findById(partnerId).lean();
+    if (!partner) return errorResponse(res, { statusCode: 404, message: 'Partner not found' });
+
+    return successResponse(res, {
+      data: {
+        walletBalance: partner.walletBalance || 0,
+        walletBalanceFormatted: (partner.walletBalance || 0).toFixed(2),
+        totalEarnings: partner.totalEarnings || 0,
+        bankInfo: partner.bankDetails?.accountNumber
+          ? `Bank A/c ending in ${partner.bankDetails.accountNumber.slice(-4)}`
+          : 'Bank details not provided'
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Instant payout to registered bank account
+ * @route POST /api/delivery/wallet/payout
+ * @access Private (Delivery Partner)
+ */
+export const walletPayout = async (req, res, next) => {
+  try {
+    const partnerId = getPartnerId(req);
+    const { amount, payoutMethod } = req.body;
+
+    if (!amount || amount <= 0) {
+      return errorResponse(res, { statusCode: 400, message: 'Invalid amount' });
+    }
+
+    const partner = await DeliveryPartner.findById(partnerId);
+    if (!partner) return errorResponse(res, { statusCode: 404, message: 'Partner not found' });
+
+    const availableBalance = partner.walletBalance || 0;
+    if (amount > availableBalance) {
+      return errorResponse(res, { statusCode: 422, message: 'Insufficient wallet balance' });
+    }
+
+    partner.walletBalance = availableBalance - amount;
+    await partner.save();
+
+    const transactionId = `TXN-PAYOUT-${Date.now().toString().slice(-6)}`;
+
+    await Settlement.create({
+      settlementNumber: transactionId,
+      entityType: 'DELIVERY_PARTNER',
+      deliveryPartnerId: partnerId,
+      amount,
+      netPayoutAmount: amount,
+      status: 'PENDING',
+      periodStart: new Date(),
+      periodEnd: new Date(),
+      grossEarnings: amount
+    });
+
+    if (req.io) {
+      req.io.emit('partner:payout', { partnerId, amount, status: 'PROCESSING' });
+    }
+
+    return successResponse(res, {
+      message: `Payout of ₹${amount.toFixed(2)} initiated successfully to your registered bank account.`,
+      data: {
+        transactionId,
+        payoutStatus: 'PROCESSING',
+        remainingBalance: partner.walletBalance
       }
     });
   } catch (error) {

@@ -292,6 +292,102 @@ export const completeDelivery = async (req, res, next) => {
 };
 
 /**
+ * @desc Accept Order Assignment
+ * @route POST /api/delivery/orders/:orderId/accept
+ * @access Private (Delivery Partner)
+ */
+export const acceptOrder = async (req, res, next) => {
+  try {
+    const partnerId = getPartnerId(req);
+    const { orderId } = req.params;
+    const { latitude, longitude } = req.body;
+
+    const delivery = await Delivery.findOne({
+      $or: [{ _id: orderId.match(/^[0-9a-fA-F]{24}$/) ? orderId : null }, { orderNumber: orderId }],
+      deliveryPartnerId: partnerId
+    });
+
+    if (!delivery) {
+      return errorResponse(res, { statusCode: 404, message: 'Delivery not found or not assigned to you' });
+    }
+
+    if (delivery.assignmentStatus === 'ACCEPTED') {
+      return errorResponse(res, { statusCode: 422, message: 'Order already accepted' });
+    }
+
+    delivery.assignmentStatus = 'ACCEPTED';
+    delivery.deliveryStatus = 'ACCEPTED';
+    delivery.acceptedAt = new Date();
+    if (latitude && longitude) {
+      delivery.partnerLocation = { latitude, longitude, updatedAt: new Date() };
+    }
+    await delivery.save();
+
+    await Order.findByIdAndUpdate(delivery.orderId, {
+      status: 'ACCEPTED',
+      $push: { statusEvents: { status: 'ACCEPTED', note: 'Accepted by delivery partner' } }
+    });
+
+    if (req.io) {
+      req.io.emit('order:status_changed', { orderId: delivery.orderId, status: 'ACCEPTED' });
+    }
+
+    return successResponse(res, {
+      message: 'Order accepted successfully',
+      data: {
+        orderId: delivery.orderNumber || delivery._id,
+        status: 'ACCEPTED'
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Reject / Decline Order Assignment
+ * @route POST /api/delivery/orders/:orderId/reject
+ * @access Private (Delivery Partner)
+ */
+export const rejectOrder = async (req, res, next) => {
+  try {
+    const partnerId = getPartnerId(req);
+    const { orderId } = req.params;
+    const { reason, notes, latitude, longitude } = req.body;
+
+    const delivery = await Delivery.findOne({
+      $or: [{ _id: orderId.match(/^[0-9a-fA-F]{24}$/) ? orderId : null }, { orderNumber: orderId }],
+      deliveryPartnerId: partnerId
+    });
+
+    if (!delivery) {
+      return errorResponse(res, { statusCode: 404, message: 'Delivery not found or not assigned to you' });
+    }
+
+    delivery.assignmentStatus = 'REJECTED';
+    delivery.deliveryPartnerId = null;
+    if (latitude && longitude) {
+      delivery.partnerLocation = { latitude, longitude, updatedAt: new Date() };
+    }
+    await delivery.save();
+
+    await Order.findByIdAndUpdate(delivery.orderId, {
+      $push: { statusEvents: { status: 'REJECTED', note: `Rejected by partner: ${reason || 'No reason'} - ${notes || ''}` } }
+    });
+
+    if (req.io) {
+      req.io.emit('order:reassign_needed', { orderId: delivery.orderId, reason });
+    }
+
+    return successResponse(res, {
+      message: 'Order declined. Order will be reassigned.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * @desc Report Issue
  * @route POST /api/delivery/orders/:orderId/report-issue
  * @access Private (Delivery Partner)
