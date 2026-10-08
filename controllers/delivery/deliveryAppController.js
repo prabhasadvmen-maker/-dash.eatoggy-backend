@@ -80,10 +80,63 @@ export const getEarnings = async (req, res, next) => {
       amountFormatted: item.amount.toFixed(2)
     }));
 
+    // Get Today and Week Earnings unconditionally
+    let todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayDeliveries = await Delivery.find({
+      deliveryPartnerId: partnerId,
+      deliveryStatus: 'DELIVERED',
+      deliveredAt: { $gte: todayStart }
+    }).lean();
+    const todaysEarnings = todayDeliveries.reduce((sum, d) => sum + (d.pricingSnapshot?.deliveryFee || 0), 0);
+
+    let weekStart = new Date();
+    weekStart.setHours(0,0,0,0);
+    weekStart.setDate(weekStart.getDate() - 7);
+    const weekDeliveries = await Delivery.find({
+      deliveryPartnerId: partnerId,
+      deliveryStatus: 'DELIVERED',
+      deliveredAt: { $gte: weekStart }
+    }).lean();
+    const thisWeekEarnings = weekDeliveries.reduce((sum, d) => sum + (d.pricingSnapshot?.deliveryFee || 0), 0);
+
+    // Generate recent transactions
+    const settlements = await Settlement.find({ deliveryPartnerId: partnerId })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean();
+
+    const transactions = settlements.map(s => ({
+      _id: s._id.toString(),
+      type: 'DEBIT',
+      amount: s.amount,
+      description: 'Withdrawal to Bank',
+      date: s.createdAt.toISOString(),
+      status: s.status
+    }));
+
+    const deliveryTxns = weekDeliveries.map(d => ({
+      _id: d._id.toString(),
+      type: 'CREDIT',
+      amount: d.pricingSnapshot?.deliveryFee || 0,
+      description: `Delivery Fee - ${d.orderNumber || d._id.toString().substring(0,8)}`,
+      date: d.deliveredAt.toISOString(),
+      status: 'COMPLETED'
+    }));
+
+    const allTxns = [...transactions, ...deliveryTxns]
+      .sort((a,b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 20);
+
     return successResponse(res, {
       data: {
         periodLabel,
-        totalEarnings,
+        totalEarnings, // Matches period (e.g. today/week/month)
+        todaysEarnings,
+        thisWeekEarnings,
+        walletBalance: partner.walletBalance || 0,
+        transactions: allTxns,
+        
         totalEarningsFormatted: totalEarnings.toFixed(2),
         deliveriesCount,
         avgPerDelivery,
@@ -92,7 +145,9 @@ export const getEarnings = async (req, res, next) => {
         availableBalance: partner.walletBalance || 0, // Assuming partner schema supports walletBalance
         availableBalanceFormatted: (partner.walletBalance || 0).toFixed(2),
         settlementNote: "COD collections are settled after 24 hrs",
-        bankInfo: partner.bankDetails ? `Bank A/c ending in ${partner.bankDetails.slice(-4)}` : 'Bank details not provided',
+        bankInfo: partner.bankDetails?.accountNumber
+          ? `Bank A/c ending in ${partner.bankDetails.accountNumber.slice(-4)}`
+          : 'Bank details not provided',
         breakdowns
       }
     });
@@ -389,11 +444,28 @@ export const getWallet = async (req, res, next) => {
     const partner = await DeliveryPartner.findById(partnerId).lean();
     if (!partner) return errorResponse(res, { statusCode: 404, message: 'Partner not found' });
 
+    // Calculate pending clearance
+    const pendingSettlements = await Settlement.find({
+      deliveryPartnerId: partnerId,
+      status: 'PENDING'
+    });
+    const pendingAmount = pendingSettlements.reduce((sum, s) => sum + s.amount, 0);
+
+    // Calculate total withdrawn
+    const completedSettlements = await Settlement.find({
+      deliveryPartnerId: partnerId,
+      status: 'COMPLETED'
+    });
+    const totalWithdrawals = completedSettlements.reduce((sum, s) => sum + s.amount, 0);
+
     return successResponse(res, {
       data: {
         walletBalance: partner.walletBalance || 0,
         walletBalanceFormatted: (partner.walletBalance || 0).toFixed(2),
+        pendingAmount,
+        totalWithdrawals,
         totalEarnings: partner.totalEarnings || 0,
+        bankDetails: partner.bankDetails || { bankName: 'Not set', accountNumber: 'Not set', status: 'Pending' },
         bankInfo: partner.bankDetails?.accountNumber
           ? `Bank A/c ending in ${partner.bankDetails.accountNumber.slice(-4)}`
           : 'Bank details not provided'

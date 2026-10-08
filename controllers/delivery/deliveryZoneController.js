@@ -1,6 +1,7 @@
 import DeliveryPartner from '../../models/delivery/DeliveryPartner.js';
 import CityZone from '../../models/super-admin/CityZone.js';
 import Subscription from '../../models/subscriptions/Subscription.js';
+import SubscriptionOccurrence from '../../models/subscriptions/SubscriptionOccurrence.js';
 import { successResponse, errorResponse } from '../../common/apiResponse.js';
 
 const getPartnerId = (req) => {
@@ -44,28 +45,42 @@ export const getZoneData = async (req, res, next) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Simple mock stats and routes if schema is too complex, but using Subscription model as basis
-    const subscribersCount = await Subscription.countDocuments({
-      'deliveryAddress.zone': partner.zone, // Assuming zone is in address or subscription schema
-      status: 'ACTIVE'
-    }).catch(() => 0); // Fallback to 0 if schema differs
+    // Get today's tiffin stops for this zone from real DB
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(todayStart);
+    todayEnd.setDate(todayEnd.getDate() + 1);
 
-    // Mock today's run as active subscriptions in the zone
-    const todayRuns = Math.max(subscribersCount, 5); // Fallback mock values
-    const completedRuns = 0; // Would be calculated based on today's deliveries
+    const occurrences = await SubscriptionOccurrence.find({
+      scheduledDate: { $gte: todayStart, $lt: todayEnd },
+      status: { $in: ['SCHEDULED', 'PROCESSING', 'ORDER_CREATED'] }
+    })
+      .populate({
+        path: 'subscriptionId',
+        match: { 'deliveryAddress.zone': partner.zone },
+        populate: { path: 'customerId', select: 'fullName mobile' }
+      })
+      .lean();
 
-    const routeStops = [
-      {
-        id: 'stop_1',
-        timeSlot: '12:00 PM - 1:00 PM',
-        mealType: 'LUNCH',
-        tiffinsCount: 2,
-        customerName: 'Meera Krishnan',
-        address: 'Penthouse A, Skyline Manor Residences',
-        latitude: zoneDetails?.coordinates?.[1] || 28.5729,
-        longitude: zoneDetails?.coordinates?.[0] || 77.2289
-      }
-    ];
+    const routeStops = occurrences
+      .filter(o => o.subscriptionId)
+      .map((o, index) => {
+        const sub = o.subscriptionId;
+        return {
+          stopId: o._id,
+          stopNumber: index + 1,
+          timeSlot: sub.planSnapshot?.mealType === 'DINNER' ? '7:00 PM - 8:00 PM' : '12:00 PM - 1:00 PM',
+          mealType: sub.planSnapshot?.mealType || 'LUNCH',
+          tiffinsCount: sub.planSnapshot?.items?.length || 1,
+          customerName: sub.customerId?.fullName || sub.deliveryAddress?.name || 'Customer',
+          address: sub.deliveryAddress?.addressLine1 || '',
+          latitude: sub.deliveryAddress?.latitude || null,
+          longitude: sub.deliveryAddress?.longitude || null,
+          isCompleted: o.status === 'ORDER_CREATED'
+        };
+      });
+
+    const completedRuns = routeStops.filter(s => s.isCompleted).length;
 
     return successResponse(res, {
       data: {
@@ -73,7 +88,7 @@ export const getZoneData = async (req, res, next) => {
         zoneSubtitle: zoneDetails?.description || 'High-density tiffin delivery sector',
         radiusKm: zoneDetails?.radius || 10,
         subscribersCount,
-        todayRuns,
+        todayRuns: routeStops.length,
         completedRuns,
         routeStops
       }
@@ -135,24 +150,10 @@ export const getZoneSubscribers = async (req, res, next) => {
       avatarUrl: `https://ui-avatars.com/api/?name=${encodeURIComponent(sub.customerSnapshot?.name || 'Customer')}&background=random`
     }));
 
-    // If query returns 0 (due to schema mismatches), return some mocked data based on prompt requirements to satisfy API shape
-    if (subscribers.length === 0 && pageNum === 1) {
-       subscribers.push({
-        id: "sub_1",
-        name: "Meera Krishnan",
-        plan: "Lunch + Dinner",
-        address: "Penthouse A, Skyline Manor Residences",
-        subscriptionSince: "2025-10-12T00:00:00Z",
-        status: status || "active",
-        isNew: true,
-        avatarUrl: "https://ui-avatars.com/api/?name=Meera+Krishnan&background=d4af37&color=fff"
-       });
-    }
-
     return successResponse(res, {
       data: {
         subscribers,
-        pagination: { page: pageNum, limit: limitNum, total: total || subscribers.length }
+        pagination: { page: pageNum, limit: limitNum, total }
       }
     });
   } catch (error) {

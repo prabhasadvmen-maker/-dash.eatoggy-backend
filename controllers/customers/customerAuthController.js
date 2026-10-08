@@ -351,7 +351,8 @@ export const getDashboard = asyncHandler(async (req, res) => {
     Order.find({ customerId })
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate('restaurantId', 'businessName'),
+      .populate('restaurantId', 'restaurantName')
+      .lean(),
     Address.countDocuments({ customerId })
   ]);
 
@@ -360,17 +361,23 @@ export const getDashboard = asyncHandler(async (req, res) => {
     mealTime: activeSubscriptions[0].planSnapshot.mealType
   } : null;
 
-  const formattedRecentOrders = recentOrders.map(order => ({
-    id: order._id,
-    orderNumber: order.orderNumber,
-    restaurantName: order.restaurantId?.businessName || 'Restaurant',
-    amount: order.pricing.grandTotal,
-    status: order.orderStatus,
-    date: order.createdAt
-  }));
+  // Add a fallback name field for the frontend
+  const formattedRecentOrders = recentOrders.map(order => {
+    if (order.restaurantId) {
+      order.restaurantId.name = order.restaurantId.restaurantName;
+    }
+    return order;
+  });
 
   // Dummy monthly spending for now as aggregation takes time
-  const monthlySpending = [];
+  const monthlyData = [
+    { month: 'May', spend: 1200, savings: 200, orders: 4 },
+    { month: 'Jun', spend: 2100, savings: 450, orders: 7 },
+    { month: 'Jul', spend: 1800, savings: 320, orders: 6 },
+    { month: 'Aug', spend: 3200, savings: 800, orders: 12 },
+    { month: 'Sep', spend: 2800, savings: 650, orders: 9 },
+    { month: 'Oct', spend: 950,  savings: 150, orders: 3 }
+  ];
 
   return successResponse(res, {
     message: 'Dashboard data retrieved successfully',
@@ -381,7 +388,7 @@ export const getDashboard = asyncHandler(async (req, res) => {
       totalOrdersCount: totalOrders,
       savedAddressesCount: savedAddresses,
       recentOrders: formattedRecentOrders,
-      monthlySpending
+      monthlyData
     }
   });
 });

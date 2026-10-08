@@ -59,19 +59,23 @@ export const getOrderHistory = async (req, res, next) => {
       .lean();
 
     const history = deliveries.map(d => ({
-      orderId: d.orderNumber || d._id,
+      _id: d._id,
+      orderNumber: d.orderNumber || d._id,
       customerName: d.customerSnapshot?.name || 'Customer',
+      restaurantName: d.restaurantSnapshot?.name || 'Restaurant',
+      customerAddress: d.customerSnapshot?.addressLine1 || 'Customer Address',
       timestamp: d.deliveredAt || d.updatedAt,
-      status: d.deliveryStatus.toLowerCase(),
+      status: d.deliveryStatus,
       statusText: d.deliveryStatus,
+      deliveryFee: d.pricingSnapshot?.deliveryFee || 0,
       earningsAmount: d.pricingSnapshot?.deliveryFee || 0,
       earningsFormatted: (d.pricingSnapshot?.deliveryFee || 0).toFixed(2)
     }));
 
     return successResponse(res, {
       data: {
-        history,
-        pagination: { page: pageNum, limit: limitNum, total }
+        deliveries: history,
+        pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) }
       }
     });
   } catch (error) {
@@ -215,9 +219,9 @@ export const verifyOtp = async (req, res, next) => {
       return errorResponse(res, { statusCode: 400, message: 'Invalid OTP' });
     }
 
-    // Usually we flag it as verified in memory or DB. The prompt says "set isVerified = true". 
-    // We can just return success and let the next API handle completion.
-    // Or we could store it in Delivery document. But let's just return true.
+    delivery.isOtpVerified = true;
+    await delivery.save();
+
     return successResponse(res, {
       message: 'OTP verified',
       data: {
@@ -254,6 +258,10 @@ export const completeDelivery = async (req, res, next) => {
       return errorResponse(res, { statusCode: 422, message: 'Delivery is already completed' });
     }
 
+    if (!delivery.isOtpVerified) {
+      return errorResponse(res, { statusCode: 403, message: 'OTP verification required before completing delivery' });
+    }
+
     const timestamp = new Date();
     delivery.deliveryStatus = 'DELIVERED';
     delivery.assignmentStatus = 'COMPLETED';
@@ -261,21 +269,17 @@ export const completeDelivery = async (req, res, next) => {
     await delivery.save();
 
     await Order.findByIdAndUpdate(delivery.orderId, {
-      status: 'DELIVERED',
-      $push: { statusEvents: { status: 'DELIVERED', note: 'Delivered to customer' } }
+      orderStatus: 'DELIVERED',
+      $push: { statusHistory: { status: 'DELIVERED', timestamp, updatedBy: 'DELIVERY_PARTNER', note: 'Delivered to customer' } }
     });
 
-    // Update partner wallet/earnings (Simulated based on prompt, assuming DeliveryPartner has a wallet/balance)
     const earnings = delivery.pricingSnapshot?.deliveryFee || 0;
-    
-    // Update partner's wallet and earnings
     try {
       await DeliveryPartner.findByIdAndUpdate(partnerId, {
         $inc: { walletBalance: earnings, totalEarnings: earnings, totalDeliveries: 1 }
       });
     } catch (walletError) {
       logger.error(`Wallet update failed for partner ${partnerId}:`, walletError.message);
-      // Log but don't fail the delivery completion
     }
 
     if (req.io) {
@@ -318,8 +322,8 @@ export const acceptOrder = async (req, res, next) => {
       return errorResponse(res, { statusCode: 404, message: 'Delivery not found or not assigned to you' });
     }
 
-    if (delivery.assignmentStatus === 'ACCEPTED') {
-      return errorResponse(res, { statusCode: 422, message: 'Order already accepted' });
+    if (['ACCEPTED', 'PICKED_UP', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(delivery.deliveryStatus)) {
+      return errorResponse(res, { statusCode: 422, message: `Order already in ${delivery.deliveryStatus} state` });
     }
 
     delivery.assignmentStatus = 'ACCEPTED';
@@ -331,8 +335,8 @@ export const acceptOrder = async (req, res, next) => {
     await delivery.save();
 
     await Order.findByIdAndUpdate(delivery.orderId, {
-      status: 'ACCEPTED',
-      $push: { statusEvents: { status: 'ACCEPTED', note: 'Accepted by delivery partner' } }
+      orderStatus: 'ACCEPTED',
+      $push: { statusHistory: { status: 'ACCEPTED', timestamp: new Date(), updatedBy: 'DELIVERY_PARTNER', note: 'Accepted by delivery partner' } }
     });
 
     if (req.io) {
@@ -341,10 +345,7 @@ export const acceptOrder = async (req, res, next) => {
 
     return successResponse(res, {
       message: 'Order accepted successfully',
-      data: {
-        orderId: delivery.orderNumber || delivery._id,
-        status: 'ACCEPTED'
-      }
+      data: { orderId: delivery.orderNumber || delivery._id, status: 'ACCEPTED' }
     });
   } catch (error) {
     next(error);
@@ -379,16 +380,14 @@ export const rejectOrder = async (req, res, next) => {
     await delivery.save();
 
     await Order.findByIdAndUpdate(delivery.orderId, {
-      $push: { statusEvents: { status: 'REJECTED', note: `Rejected by partner: ${reason || 'No reason'} - ${notes || ''}` } }
+      $push: { statusHistory: { status: 'ACCEPTED', timestamp: new Date(), updatedBy: 'DELIVERY_PARTNER', note: `Rejected by partner: ${reason || 'No reason'} - ${notes || ''}` } }
     });
 
     if (req.io) {
       req.io.emit('order:reassign_needed', { orderId: delivery.orderId, reason });
     }
 
-    return successResponse(res, {
-      message: 'Order declined. Order will be reassigned.'
-    });
+    return successResponse(res, { message: 'Order declined. Order will be reassigned.' });
   } catch (error) {
     next(error);
   }
@@ -418,15 +417,12 @@ export const reportIssue = async (req, res, next) => {
       return errorResponse(res, { statusCode: 404, message: 'Delivery not found or not assigned to you' });
     }
 
-    // If there is photo uploaded, it would be in req.file via multer
-    // const photoUrl = req.file ? req.file.location : null;
-    
     delivery.assignmentStatus = 'REJECTED';
     await delivery.save();
 
     await Order.findByIdAndUpdate(delivery.orderId, {
-      status: 'CANCELLED',
-      $push: { statusEvents: { status: 'CANCELLED', note: `Delivery Failed: ${selectedReason} - ${additionalNotes || ''}` } }
+      orderStatus: 'CANCELLED',
+      $push: { statusHistory: { status: 'CANCELLED', timestamp: new Date(), updatedBy: 'DELIVERY_PARTNER', note: `Delivery Failed: ${selectedReason} - ${additionalNotes || ''}` } }
     });
 
     return successResponse(res, {

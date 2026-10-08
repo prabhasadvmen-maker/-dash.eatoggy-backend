@@ -33,6 +33,34 @@ export const sendOtp = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Resend OTP to Delivery Partner mobile
+ * @route   POST /api/delivery-auth/resend-otp
+ * @access  Public
+ */
+export const resendOtp = asyncHandler(async (req, res) => {
+  const { mobile } = req.body;
+
+  if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
+    return errorResponse(res, {
+      statusCode: 400,
+      message: 'Valid 10-digit Indian mobile number is required'
+    });
+  }
+
+  const otpResult = await sendOTP(mobile);
+  if (otpResult.success) {
+    return successResponse(res, {
+      message: 'OTP resent successfully'
+    });
+  } else {
+    return errorResponse(res, {
+      statusCode: 400,
+      message: otpResult.message || 'Failed to resend OTP'
+    });
+  }
+});
+
+/**
  * @desc    Verify mobile OTP for Delivery Partner & return onboarding token + state
  * @route   POST /api/delivery-auth/verify-otp
  * @access  Public
@@ -65,7 +93,8 @@ export const verifyOtp = asyncHandler(async (req, res) => {
         isActive: false,
         isMobileVerified: true,
         onboardingStatus: 'ONBOARDING_IN_PROGRESS',
-        currentStep: 'PROFILE'
+        currentStep: 'PROFILE',
+        lastLogin: new Date()
       });
     } else {
       partner.isMobileVerified = true;

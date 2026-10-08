@@ -1,21 +1,13 @@
+import mongoose from 'mongoose';
 import Delivery from '../../models/delivery/Delivery.js';
 import DeliveryPartner from '../../models/delivery/DeliveryPartner.js';
 import { successResponse, errorResponse } from '../../common/apiResponse.js';
+import { getRoute } from '../../integrations/maps/geoapifyService.js';
 
 const getPartnerId = (req) => {
-  return req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
-};
-
-// Haversine formula to calculate distance in km
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371; // Earth radius in km
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  const raw = req.deliveryPartner?.id || req.deliveryPartner?._id || req.user?.id || req.user?._id;
+  if (!raw) return null;
+  try { return new mongoose.Types.ObjectId(raw.toString()); } catch { return null; }
 };
 
 /**
@@ -38,14 +30,16 @@ export const getNavigationData = async (req, res, next) => {
     }
 
     const partner = await DeliveryPartner.findById(partnerId).select('currentLocation').lean();
-    
-    // Default fallback to center of Delhi if not available
-    const partnerLat = partner?.currentLocation?.latitude || 28.6139;
-    const partnerLon = partner?.currentLocation?.longitude || 77.2090;
+
+    const partnerLat = partner?.currentLocation?.latitude || null;
+    const partnerLon = partner?.currentLocation?.longitude || null;
+
+    if (!partnerLat || !partnerLon) {
+      return errorResponse(res, { statusCode: 422, message: 'Partner GPS location not available. Please enable location.' });
+    }
 
     let destLat, destLon, destTitle, destAddress, destDetails;
 
-    // Depending on deliveryStatus, navigate to Restaurant or Customer
     if (['ASSIGNED', 'ACCEPTED'].includes(delivery.deliveryStatus)) {
       destLat = delivery.restaurantSnapshot?.latitude || partnerLat;
       destLon = delivery.restaurantSnapshot?.longitude || partnerLon;
@@ -60,23 +54,25 @@ export const getNavigationData = async (req, res, next) => {
       destDetails = delivery.customerSnapshot?.addressLine2 || '';
     }
 
-    // Rough distance in Km
-    const distanceKm = calculateDistance(partnerLat, partnerLon, destLat, destLon);
-    
-    // Rough ETA: assume avg 20km/h in city = ~3 min per km
-    const etaMinutes = Math.max(1, Math.round(distanceKm * 3));
+    // Real route from Geoapify
+    const routeData = await getRoute(partnerLat, partnerLon, destLat, destLon);
 
     return successResponse(res, {
       data: {
         orderId: delivery.orderNumber || delivery._id,
-        etaMinutes,
-        distanceKm: Number(distanceKm.toFixed(1)),
-        turnDirection: 'Follow the highlighted route on the map', // Mocked direction
+        etaMinutes: routeData.durationMinutes,
+        distanceKm: routeData.distanceKm,
         destinationTitle: destTitle,
         destinationDetails: destDetails,
         destinationAddress: destAddress,
         latitude: destLat,
-        longitude: destLon
+        longitude: destLon,
+        route: {
+          distanceKm: routeData.distanceKm,
+          durationMinutes: routeData.durationMinutes,
+          steps: routeData.steps,
+          polyline: routeData.polyline
+        }
       }
     });
   } catch (error) {

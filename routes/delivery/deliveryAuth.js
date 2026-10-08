@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   sendOtp,
+  resendOtp,
   verifyOtp,
   login,
   getMe
@@ -12,6 +13,7 @@ import { otpRequestLimiter, otpVerifyLimiter } from '../../config/rateLimiter.js
 const router = express.Router();
 
 router.post('/send-otp', otpRequestLimiter, sendOtp);
+router.post('/resend-otp', otpRequestLimiter, resendOtp);
 router.post('/verify-otp', otpVerifyLimiter, verifyOtp);
 router.post('/login', login);
 router.get('/me', protectDeliveryPartner, getMe);

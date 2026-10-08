@@ -4,6 +4,7 @@ import Order from '../../models/orders/Order.js';
 import Restaurant from '../../models/restaurants/Restaurant.js';
 import Customer from '../../models/customers/Customer.js';
 import { emitToOrderRoom } from '../../realtime/socketServer.js';
+import { geocodeAddress } from '../../integrations/maps/geoapifyService.js';
 
 /**
  * Helper to generate 4-digit Delivery OTP
@@ -36,6 +37,19 @@ export const createDeliveryForOrder = async (orderId) => {
     longitude: order.restaurantId?.longitude || 77.2090
   };
 
+  // Geocode customer address to get real coordinates
+  let customerLat = 28.6139;
+  let customerLon = 77.2090;
+  const addrLine = order.deliveryAddress?.addressLine1;
+  const addrCity = order.deliveryAddress?.city;
+  if (addrLine && addrCity) {
+    const geo = await geocodeAddress(`${addrLine}, ${addrCity}`);
+    if (geo?.lat && geo?.lon) {
+      customerLat = geo.lat;
+      customerLon = geo.lon;
+    }
+  }
+
   const customerSnapshot = {
     name: order.deliveryAddress?.name || order.customerId?.name || 'Customer',
     mobile: order.deliveryAddress?.mobile || order.customerId?.mobile || '9876543210',
@@ -43,8 +57,8 @@ export const createDeliveryForOrder = async (orderId) => {
     addressLine2: order.deliveryAddress?.addressLine2 || '',
     city: order.deliveryAddress?.city || '',
     pincode: order.deliveryAddress?.pincode || '',
-    latitude: 28.6139,
-    longitude: 77.2090
+    latitude: customerLat,
+    longitude: customerLon
   };
 
   const pricingSnapshot = {

@@ -67,6 +67,7 @@ import aiChatRoutes from './routes/ai-chat/aiChatRoutes.js';
 import serviceRoutes from './routes/services/serviceRoutes.js';
 import bookingRoutes from './routes/bookings/bookingRoutes.js';
 import translationRoutes from './routes/translation/translationRoutes.js';
+import mapRoutes from './routes/maps/mapRoutes.js';
 import { getAllCities, getActiveCities } from './controllers/super-admin/superAdminCityZoneController.js';
 import { startSubscriptionSchedulerJob, stopSubscriptionSchedulerJob } from './jobs/subscriptionSchedulerJob.js';
 import { protect } from './middleware/authMiddleware.js';
@@ -165,6 +166,7 @@ app.use('/api/customer/ai-chat', aiChatRoutes);
 app.use('/api', serviceRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/translation', translationRoutes);
+app.use('/api/maps', mapRoutes);
 
 // Delivery Partners Routes
 app.use('/api/delivery-auth', deliveryAuthRoutes);
