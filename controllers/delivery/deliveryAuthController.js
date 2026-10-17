@@ -21,15 +21,12 @@ export const sendOtp = asyncHandler(async (req, res) => {
 
   const otpResult = await sendOTP(mobile);
   if (otpResult.success) {
-    return successResponse(res, {
-      message: 'OTP sent successfully'
-    });
-  } else {
-    return errorResponse(res, {
-      statusCode: 400,
-      message: otpResult.message || 'Failed to send OTP'
-    });
+    return successResponse(res, { message: 'OTP sent successfully' });
   }
+  return errorResponse(res, {
+    statusCode: otpResult.statusCode || 400,
+    message: otpResult.message || 'Failed to send OTP'
+  });
 });
 
 /**
@@ -49,15 +46,12 @@ export const resendOtp = asyncHandler(async (req, res) => {
 
   const otpResult = await sendOTP(mobile);
   if (otpResult.success) {
-    return successResponse(res, {
-      message: 'OTP resent successfully'
-    });
-  } else {
-    return errorResponse(res, {
-      statusCode: 400,
-      message: otpResult.message || 'Failed to resend OTP'
-    });
+    return successResponse(res, { message: 'OTP resent successfully' });
   }
+  return errorResponse(res, {
+    statusCode: otpResult.statusCode || 400,
+    message: otpResult.message || 'Failed to resend OTP'
+  });
 });
 
 /**
@@ -75,15 +69,7 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     });
   }
 
-  const verification = verifyOTP(mobile, otp);
-  if (!verification.success) {
-    return errorResponse(res, {
-      statusCode: 400,
-      message: verification.message || 'Invalid or expired OTP'
-    });
-  }
-
-  let partner;
+  const verification = await verifyOTP(mobile, otp);
   try {
     partner = await DeliveryPartner.findOne({ mobile });
     if (!partner) {
